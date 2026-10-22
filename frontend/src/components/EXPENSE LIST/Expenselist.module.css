@@ -1,0 +1,180 @@
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.cardHeader {
+    padding: 24px 24px 4px;
+}
+
+.eyebrow {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+
+.title {
+    margin: 0 0 8px;
+    font-family: 'Fraunces', serif;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.tableWrap {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 480px;
+}
+
+thead {
+    background: var(--surface-muted);
+}
+
+th {
+    padding: 12px 24px;
+    text-align: left;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+}
+
+td {
+    padding: 14px 24px;
+    border-top: 1px solid var(--border);
+    font-size: 0.92rem;
+    color: var(--text);
+}
+
+tbody tr {
+    transition: background 0.15s ease;
+}
+
+tbody tr:hover {
+    background: var(--surface-muted);
+}
+
+.amountCell {
+    font-family: 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+}
+
+.editInput,
+.editSelect {
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.9rem;
+    outline: none;
+    width: 100%;
+}
+
+.editInput:focus,
+.editSelect:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: white;
+}
+
+.food { background: var(--cat-food); }
+.travel { background: var(--cat-travel); }
+.education { background: var(--cat-education); }
+.other { background: var(--cat-default); }
+
+.actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.iconButton,
+.iconButtonDanger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.iconButton:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--accent-soft);
+}
+
+.iconButtonDanger:hover {
+    color: #E0594C;
+    border-color: #E0594C;
+    background: rgba(224, 89, 76, 0.12);
+}
+
+.iconButton:focus-visible,
+.iconButtonDanger:focus-visible {
+    box-shadow: 0 0 0 3px var(--accent-soft);
+    outline: none;
+}
+
+.saveButton {
+    padding: 7px 14px;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent);
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.saveButton:hover {
+    background: var(--accent-hover);
+}
+
+.empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 50px 24px;
+    color: var(--text-muted);
+    text-align: center;
+    gap: 4px;
+}
+
+.empty p {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.empty span {
+    font-size: 0.85rem;
+}

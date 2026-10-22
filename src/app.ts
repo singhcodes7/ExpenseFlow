@@ -140,7 +140,7 @@ const authenticateToken = async (
 
         next();
     } catch (error) {
-        return res.status(403).json({
+        return res.status(401).json({
             message: "Invalid or expired token",
         });
     }
@@ -157,6 +157,148 @@ function authorizeAdmin(req: any, res: any, next: any) {
 
     next();
 }
+
+// ==================== EXPENSE ROUTES ====================
+
+app.get("/expenses", authenticateToken, async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT id, name, amount, category, created_at
+             FROM expenses
+             WHERE user_id = $1
+             ORDER BY created_at DESC`,
+            [req.userId]
+        );
+
+        res.json({ expenses: result.rows });
+    } catch (error) {
+        console.error("Error fetching expenses:", error);
+        res.status(500).json({
+            message: "Failed to fetch expenses",
+        });
+    }
+});
+
+app.post("/expenses", authenticateToken, async (req, res) => {
+    const schema = z.object({
+        name: z.string().trim().min(1).max(255),
+        amount: z.coerce.number().positive().finite(),
+        category: z.enum(["Food", "Travel", "Education"]),
+    });
+
+    const parsed = schema.safeParse(req.body);
+
+    if (!parsed.success) {
+        return res.status(400).json({
+            message: "Invalid expense data",
+            errors: parsed.error.issues,
+        });
+    }
+
+    try {
+        const { name, amount, category } = parsed.data;
+
+        const result = await pool.query(
+            `INSERT INTO expenses (user_id, name, amount, category)
+             VALUES ($1, $2, $3, $4)
+             RETURNING id, name, amount, category, created_at`,
+            [req.userId, name, amount, category]
+        );
+
+        return res.status(201).json({
+            expense: result.rows[0],
+        });
+    } catch (error) {
+        console.error("Error creating expense:", error);
+        return res.status(500).json({
+            message: "Failed to create expense",
+        });
+    }
+});
+
+app.put("/expenses/:id", authenticateToken, async (req, res) => {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id) || id <= 0) {
+        return res.status(400).json({
+            message: "Invalid expense ID",
+        });
+    }
+
+    const schema = z.object({
+        name: z.string().trim().min(1).max(255),
+        amount: z.coerce.number().positive().finite(),
+        category: z.enum(["Food", "Travel", "Education"]),
+    });
+
+    const parsed = schema.safeParse(req.body);
+
+    if (!parsed.success) {
+        return res.status(400).json({
+            message: "Invalid expense data",
+            errors: parsed.error.issues,
+        });
+    }
+
+    try {
+        const { name, amount, category } = parsed.data;
+
+        const result = await pool.query(
+            `UPDATE expenses
+             SET name = $1, amount = $2, category = $3
+             WHERE id = $4 AND user_id = $5
+             RETURNING id, name, amount, category, created_at`,
+            [name, amount, category, id, req.userId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                message: "Expense not found",
+            });
+        }
+
+        return res.json({ expense: result.rows[0] });
+    } catch (error) {
+        console.error("Error updating expense:", error);
+        return res.status(500).json({
+            message: "Failed to update expense",
+        });
+    }
+});
+
+app.delete("/expenses/:id", authenticateToken, async (req, res) => {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id) || id <= 0) {
+        return res.status(400).json({
+            message: "Invalid expense ID",
+        });
+    }
+
+    try {
+        const result = await pool.query(
+            `DELETE FROM expenses
+             WHERE id = $1 AND user_id = $2
+             RETURNING id`,
+            [id, req.userId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                message: "Expense not found",
+            });
+        }
+
+        return res.json({
+            message: "Expense deleted successfully",
+        });
+    } catch (error) {
+        console.error("Error deleting expense:", error);
+        return res.status(500).json({
+            message: "Failed to delete expense",
+        });
+    }
+});
 
 // ==================== ADMIN ONLY ROUTE ====================
 
@@ -329,6 +471,85 @@ app.post("/register", sensitiveActionLimiter, async (req, res) => {
 });
 
 
+// ==================== VERIFY EMAIL ====================
+
+app.get("/verify-email", async (req, res) => {
+    const token = req.query.token;
+
+    if (typeof token !== "string" || !token.trim()) {
+        return res.status(400).json({
+            message: "A valid verification token is required",
+        });
+    }
+
+    const tokenHash = sha256(token);
+
+    let client;
+
+    try {
+        client = await pool.connect();
+
+        await client.query("BEGIN");
+
+        const result = await client.query(
+            `SELECT id, user_id
+             FROM email_verification_tokens
+             WHERE token_hash = $1
+               AND used_at IS NULL
+               AND expires_at > NOW()
+             FOR UPDATE`,
+            [tokenHash]
+        );
+
+        if (result.rows.length === 0) {
+            await client.query("ROLLBACK");
+
+            return res.status(400).json({
+                message: "Verification token is invalid, expired, or already used",
+            });
+        }
+
+        const verificationRecord = result.rows[0];
+
+        await client.query(
+            `UPDATE users
+             SET email_verified = TRUE
+             WHERE id = $1`,
+            [verificationRecord.user_id]
+        );
+
+        await client.query(
+            `UPDATE email_verification_tokens
+             SET used_at = NOW()
+             WHERE id = $1`,
+            [verificationRecord.id]
+        );
+
+        await client.query("COMMIT");
+
+        return res.redirect(
+    "http://localhost:5173/?verified=success"
+);
+
+    } catch (error) {
+        if (client) {
+            try {
+                await client.query("ROLLBACK");
+            } catch (rollbackError) {
+                console.error("Verification rollback error:", rollbackError);
+            }
+        }
+
+        console.error("Email verification error:", error);
+
+        return res.status(500).json({
+            message: "Something went wrong",
+        });
+    } finally {
+        client?.release();
+    }
+});
+
 //=====================RESEND VERIFICATION================
 
 
@@ -401,10 +622,8 @@ app.post("/resend-verification", sensitiveActionLimiter, async (req, res) => {
         } finally {
             client.release();
         }
-
-        // DEVELOPMENT ONLY: replace with email delivery later
+         // DEVELOPMENT ONLY: replace with email delivery later
         console.log("New email verification token:", verificationToken);
-
         return res.status(200).json({
             message: successMessage,
         });
@@ -417,83 +636,6 @@ app.post("/resend-verification", sensitiveActionLimiter, async (req, res) => {
     }
 });
 
-// ==================== VERIFY EMAIL ====================
-
-app.get("/verify-email", async (req, res) => {
-    const token = req.query.token;
-
-    if (typeof token !== "string" || !token.trim()) {
-        return res.status(400).json({
-            message: "A valid verification token is required",
-        });
-    }
-
-    const tokenHash = sha256(token);
-
-    let client;
-
-    try {
-        client = await pool.connect();
-
-        await client.query("BEGIN");
-
-        const result = await client.query(
-            `SELECT id, user_id
-             FROM email_verification_tokens
-             WHERE token_hash = $1
-               AND used_at IS NULL
-               AND expires_at > NOW()
-             FOR UPDATE`,
-            [tokenHash]
-        );
-
-        if (result.rows.length === 0) {
-            await client.query("ROLLBACK");
-
-            return res.status(400).json({
-                message: "Verification token is invalid, expired, or already used",
-            });
-        }
-
-        const verificationRecord = result.rows[0];
-
-        await client.query(
-            `UPDATE users
-             SET email_verified = TRUE
-             WHERE id = $1`,
-            [verificationRecord.user_id]
-        );
-
-        await client.query(
-            `UPDATE email_verification_tokens
-             SET used_at = NOW()
-             WHERE id = $1`,
-            [verificationRecord.id]
-        );
-
-        await client.query("COMMIT");
-
-        return res.status(200).json({
-            message: "Email verified successfully. You can now log in.",
-        });
-    } catch (error) {
-        if (client) {
-            try {
-                await client.query("ROLLBACK");
-            } catch (rollbackError) {
-                console.error("Verification rollback error:", rollbackError);
-            }
-        }
-
-        console.error("Email verification error:", error);
-
-        return res.status(500).json({
-            message: "Something went wrong",
-        });
-    } finally {
-        client?.release();
-    }
-});
 
 // ==================== LOGIN ====================
 
@@ -801,6 +943,7 @@ app.patch("/profile", authenticateToken, async (req, res) => {
 // ==================== FORGOT PASSWORD ====================
 
 app.post("/forgot-password", sensitiveActionLimiter, async (req, res) => {
+    console.log("Forgot password route reached:", req.body.email);
     const { email } = req.body ?? {};
 
     if (typeof email !== "string" || !email.trim()) {
@@ -847,8 +990,10 @@ app.post("/forgot-password", sensitiveActionLimiter, async (req, res) => {
 
         // DEVELOPMENT ONLY: do not expose reset tokens in production.
         try {
+        const recipientEmail = "kalyanising2002@gmail.com";
+
         await sendPasswordResetEmail(
-        email.trim().toLowerCase(),
+        recipientEmail,
         resetToken
         );
         } catch (emailError) {

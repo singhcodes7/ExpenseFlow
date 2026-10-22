@@ -1,0 +1,35 @@
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.profileButton {
+    padding: 9px 16px;
+    border: 1px solid var(--border-color, #d1d5db);
+    border-radius: 10px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.profileButton:hover {
+    background: rgba(128, 128, 128, 0.12);
+}
+
+
+@media (max-width: 600px) {
+    .actions {
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .profileButton {
+        padding: 8px 12px;
+        font-size: 0.9rem;
+    }
+}
+
