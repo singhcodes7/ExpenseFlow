@@ -1,17 +1,24 @@
-
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# Dependencies and build output
+﻿# Dependencies
 node_modules/
-dist/
 
-# Local environment files and secrets
+# Environment variables and secrets
 .env
 .env.*
 !.env.example
+
+# Build output
+dist/
+dist-ssr/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+
+
+backend/.git-backup/
+frontend/vite-project/
