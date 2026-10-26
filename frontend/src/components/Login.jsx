@@ -264,14 +264,14 @@ useEffect(() => {
             "Sending code..."
         ) : resendCooldown > 0 ? (
             <>
-                Resend code in{" "}
+                Resend OTP in{" "}
                 <span className="resend-otp-timer">
                     {String(Math.floor(resendCooldown / 60)).padStart(2, "0")}:
                     {String(resendCooldown % 60).padStart(2, "0")}
                 </span>
             </>
         ) : (
-            "Resend code"
+            "Resend OTP"
         )}
     </button>
 )}
