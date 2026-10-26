@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { apiRequest } from "../api";
 import ForgotPassword from "./Forgotpassword";
 import "./Login.css";
@@ -14,6 +14,46 @@ function Login({ onLogin, onRegister }) {
     const [message, setMessage] = useState("");
     const [showForgotPassword, setShowForgotPassword] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    
+const [resendingOtp, setResendingOtp] = useState(false);
+const [resendCooldown, setResendCooldown] = useState(0);
+
+const handleResendLoginOtp = async () => {
+    if (resendingOtp || resendCooldown > 0) return;
+
+    setError("");
+    setMessage("");
+    setResendingOtp(true);
+
+    try {
+        const data = await apiRequest("/resend-login-otp", {
+            method: "POST",
+            body: JSON.stringify({
+                email: email.trim().toLowerCase(),
+            }),
+        });
+
+        setMessage(
+            data.message || "If eligible, a new verification code will be sent."
+        );
+        setResendCooldown(60);
+    } catch (err) {
+        setError(err.message || "Unable to resend the code. Please try again.");
+    } finally {
+        setResendingOtp(false);
+    }
+};
+    
+useEffect(() => {
+    if (resendCooldown <= 0) return;
+
+    const timer = setTimeout(() => {
+        setResendCooldown((current) => Math.max(0, current - 1));
+    }, 1000);
+
+    return () => clearTimeout(timer);
+}, [resendCooldown]);
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -29,9 +69,10 @@ function Login({ onLogin, onRegister }) {
                 });
 
                 if (data.requiresOtp) {
-                    setOtpStep(true);
-                    setMessage(data.message);
-                } else {
+                setOtpStep(true);
+                setMessage(data.message);
+                setResendCooldown(60);
+} else {
                     setError("Unexpected server response. Please try again.");
                 }
             } else {
@@ -209,6 +250,32 @@ function Login({ onLogin, onRegister }) {
                             </>
                         )}
                     </button>
+                    
+
+{otpStep && (
+    <button
+        type="button"
+        className="forgot-link resend-otp-button"
+        onClick={handleResendLoginOtp}
+        disabled={loading || resendingOtp || resendCooldown > 0}
+        aria-live="polite"
+    >
+        {resendingOtp ? (
+            "Sending code..."
+        ) : resendCooldown > 0 ? (
+            <>
+                Resend code in{" "}
+                <span className="resend-otp-timer">
+                    {String(Math.floor(resendCooldown / 60)).padStart(2, "0")}:
+                    {String(resendCooldown % 60).padStart(2, "0")}
+                </span>
+            </>
+        ) : (
+            "Resend code"
+        )}
+    </button>
+)}
+
 
                     {otpStep && (
                         <button

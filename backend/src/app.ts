@@ -1210,6 +1210,80 @@ app.post(
     }
 );
 
+//======================verify login otp================
+
+
+app.post(
+    "/resend-login-otp",
+    sensitiveActionLimiter,
+    async (req, res) => {
+        const { email } = req.body ?? {};
+
+        if (typeof email !== "string" || !email.trim()) {
+            return res.status(400).json({
+                message: "A valid email is required",
+            });
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+
+        const message =
+            "If the account is eligible, a new login OTP will be sent.";
+
+        try {
+            const userResult = await pool.query(
+                `SELECT id, email, email_verified
+                 FROM users
+                 WHERE email = $1`,
+                [normalizedEmail]
+            );
+
+            if (
+                userResult.rows.length === 0 ||
+                !userResult.rows[0].email_verified
+            ) {
+                return res.status(200).json({ message });
+            }
+
+            const user = userResult.rows[0];
+
+            // Enforce a 60-second cooldown for login OTP resends.
+            const recentOtp = await pool.query(
+                `SELECT created_at
+                 FROM email_otps
+                 WHERE user_id = $1
+                   AND purpose = 'login'
+                 ORDER BY created_at DESC
+                 LIMIT 1`,
+                [user.id]
+            );
+
+            if (recentOtp.rows.length > 0) {
+                const lastCreatedAt = new Date(
+                    recentOtp.rows[0].created_at
+                ).getTime();
+
+                if (Date.now() - lastCreatedAt < 60_000) {
+                    return res.status(429).json({
+                        message:
+                            "Please wait 60 seconds before requesting another OTP.",
+                    });
+                }
+            }
+
+            await issueOtp(user.id, user.email, "login");
+
+            return res.status(200).json({ message });
+        } catch (error) {
+            console.error("Resend login OTP error:", error);
+
+            return res.status(500).json({
+                message: "Unable to resend login OTP",
+            });
+        }
+    }
+);
+
 
 // ==================== REFRESH TOKEN ====================
 
