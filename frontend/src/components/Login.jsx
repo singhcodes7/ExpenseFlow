@@ -7,26 +7,51 @@ import "./Login.css";
 function Login({ onLogin, onRegister }) {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [otp, setOtp] = useState("");
+    const [otpStep, setOtpStep] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [message, setMessage] = useState("");
     const [showForgotPassword, setShowForgotPassword] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
+        setMessage("");
         setLoading(true);
 
         try {
-            const data = await apiRequest("/login", {
-                method: "POST",
-                body: JSON.stringify({ email, password }),
-            });
+            if (!otpStep) {
+                const data = await apiRequest("/login", {
+                    method: "POST",
+                    body: JSON.stringify({ email, password }),
+                });
 
-            sessionStorage.setItem("accessToken", data.accessToken);
-            onLogin(data.user);
+                if (data.requiresOtp) {
+                    setOtpStep(true);
+                    setMessage(data.message);
+                } else {
+                    setError("Unexpected server response. Please try again.");
+                }
+            } else {
+                const data = await apiRequest("/verify-login-otp", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        email,
+                        otp,
+                    }),
+                });
+
+                if (!data.accessToken || !data.user) {
+                    throw new Error("Unexpected server response. Please try again.");
+                }
+
+                sessionStorage.setItem("accessToken", data.accessToken);
+                onLogin(data.user);
+            }
         } catch (err) {
-            setError(err.message);
+            setError(err.message || "Something went wrong. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -69,59 +94,96 @@ function Login({ onLogin, onRegister }) {
                 </div>
 
                 <div className="login-heading">
-                    <p className="login-eyebrow">WELCOME BACK</p>
-                    <h1>Good to see you.</h1>
+                    <p className="login-eyebrow">
+                        {otpStep ? "TWO-STEP VERIFICATION" : "WELCOME BACK"}
+                    </p>
+                    <h1>
+                        {otpStep ? "Check your email." : "Good to see you."}
+                    </h1>
                     <p className="login-subtitle">
-                        Sign in to manage your money smarter.
+                        {otpStep
+                            ? `Enter the six-digit code sent to ${email}.`
+                            : "Sign in to manage your money smarter."}
                     </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="login-form">
-                    <div className="login-field">
-                        <label htmlFor="email">Email address</label>
-                        <input
-                            id="email"
-                            type="email"
-                            placeholder="you@example.com"
-                            autoComplete="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                        />
-                    </div>
+                    {!otpStep ? (
+                        <>
+                            <div className="login-field">
+                                <label htmlFor="email">Email address</label>
+                                <input
+                                    id="email"
+                                    type="email"
+                                    placeholder="you@example.com"
+                                    autoComplete="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                />
+                            </div>
 
-                    <div className="login-field">
-                        <div className="login-password-heading">
-                            <label htmlFor="password">Password</label>
-                            <button
-                                type="button"
-                                className="forgot-link"
-                                onClick={() => setShowForgotPassword(true)}
-                            >
-                                Forgot password?
-                            </button>
-                        </div>
+                            <div className="login-field">
+                                <div className="login-password-heading">
+                                    <label htmlFor="password">Password</label>
+                                    <button
+                                        type="button"
+                                        className="forgot-link"
+                                        onClick={() => setShowForgotPassword(true)}
+                                    >
+                                        Forgot password?
+                                    </button>
+                                </div>
 
-                        <div className="password-input-wrap">
+                                <div className="password-input-wrap">
+                                    <input
+                                        id="password"
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="Enter your password"
+                                        autoComplete="current-password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        className="password-toggle"
+                                        onClick={() => setShowPassword((prev) => !prev)}
+                                        aria-label={
+                                            showPassword ? "Hide password" : "Show password"
+                                        }
+                                    >
+                                        {showPassword ? "Hide" : "Show"}
+                                    </button>
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="login-field">
+                            <label htmlFor="otp">Six-digit email code</label>
                             <input
-                                id="password"
-                                type={showPassword ? "text" : "password"}
-                                placeholder="Enter your password"
-                                autoComplete="current-password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                id="otp"
+                                type="text"
+                                inputMode="numeric"
+                                autoComplete="one-time-code"
+                                placeholder="Enter 6-digit OTP"
+                                value={otp}
+                                onChange={(e) =>
+                                    setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                                }
+                                pattern="[0-9]{6}"
+                                maxLength={6}
                                 required
+                                autoFocus
                             />
-                            <button
-                                type="button"
-                                className="password-toggle"
-                                onClick={() => setShowPassword((prev) => !prev)}
-                                aria-label={showPassword ? "Hide password" : "Show password"}
-                            >
-                                {showPassword ? "Hide" : "Show"}
-                            </button>
                         </div>
-                    </div>
+                    )}
+
+                    {message && (
+                        <div className="login-security" role="status">
+                            {message}
+                        </div>
+                    )}
 
                     {error && (
                         <div className="login-error" role="alert">
@@ -133,20 +195,36 @@ function Login({ onLogin, onRegister }) {
                     <button
                         type="submit"
                         className="login-submit"
-                        disabled={loading}
+                        disabled={loading || (otpStep && otp.length !== 6)}
                     >
                         {loading ? (
                             <>
                                 <span className="login-spinner"></span>
-                                Signing in...
+                                {otpStep ? "Verifying your identity..." : "Authenticating..."}
                             </>
                         ) : (
                             <>
-                                Sign in
+                                {otpStep ? "Verify & Sign In" : "Sign In"}
                                 <span aria-hidden="true">→</span>
                             </>
                         )}
                     </button>
+
+                    {otpStep && (
+                        <button
+                            type="button"
+                            className="forgot-link"
+                            onClick={() => {
+                                setOtpStep(false);
+                                setOtp("");
+                                setError("");
+                                setMessage("");
+                            }}
+                            disabled={loading}
+                        >
+                            Back to login
+                        </button>
+                    )}
                 </form>
 
                 <div className="login-security">
@@ -166,16 +244,19 @@ function Login({ onLogin, onRegister }) {
                     </svg>
                     Your financial data stays protected.
                 </div>
-                <p className="login-subtitle">
-    Don't have an account?{" "}
-    <button
-        type="button"
-        className="forgot-link"
-        onClick={onRegister}
-    >
-        Create account
-    </button>
-</p>
+
+                {!otpStep && (
+                    <p className="login-subtitle">
+                        Don't have an account?{" "}
+                        <button
+                            type="button"
+                            className="forgot-link"
+                            onClick={onRegister}
+                        >
+                            Create account
+                        </button>
+                    </p>
+                )}
             </section>
 
             <p className="login-footer">

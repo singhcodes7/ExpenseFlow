@@ -1,5 +1,5 @@
 
-const API_URL = "http://localhost:5000";
+export const API_URL = "http://localhost:5000";
 
 let refreshPromise = null;
 
@@ -63,6 +63,39 @@ export async function apiRequest(endpoint, options = {}) {
 
     if (!response.ok) {
         throw new Error(data.message || "Something went wrong");
+    }
+
+    return data;
+}
+
+export async function apiUpload(endpoint, formData) {
+    const makeRequest = async (token) => {
+        const headers = {};
+
+        if (token) {
+            headers.Authorization = `Bearer ${token}`;
+        }
+
+        return fetch(`${API_URL}${endpoint}`, {
+            method: "POST",
+            headers,
+            body: formData,
+            credentials: "include",
+        });
+    };
+
+    let token = sessionStorage.getItem("accessToken");
+    let response = await makeRequest(token);
+
+    if (response.status === 401 && endpoint !== "/refresh") {
+        token = await refreshAccessToken();
+        response = await makeRequest(token);
+    }
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+        throw new Error(data.message || "Image upload failed.");
     }
 
     return data;

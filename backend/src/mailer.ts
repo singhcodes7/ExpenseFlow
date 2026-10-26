@@ -38,6 +38,44 @@ export async function sendVerificationEmail(
 }
 
 
+export async function sendOtpEmail(
+    email: string,
+    otp: string,
+    purpose: "registration" | "login"
+) {
+    const isRegistration = purpose === "registration";
+
+    const subject = isRegistration
+        ? "Verify your ExpenseFlow account"
+        : "Your ExpenseFlow login code";
+
+    const heading = isRegistration
+        ? "Verify your email address"
+        : "Your login verification code";
+
+    await transporter.sendMail({
+        from: `"ExpenseFlow" <${smtpUser}>`,
+        to: email,
+        subject,
+        text: `${heading}\n\nYour verification code is: ${otp}\n\nThis code expires in 5 minutes. Do not share it with anyone.`,
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto; padding: 24px;">
+                <h2>${heading}</h2>
+                <p>Use the following code to continue:</p>
+                <div style="font-size: 32px; font-weight: bold; letter-spacing: 8px; padding: 16px 0;">
+                    ${otp}
+                </div>
+                <p>This code expires in 5 minutes.</p>
+                <p>If you did not request this code, you can ignore this email.</p>
+                <p style="color: #666; font-size: 12px;">
+                    Never share your verification code with anyone.
+                </p>
+            </div>
+        `,
+    });
+}
+
+
 export async function sendPasswordResetEmail(
     email: string,
     resetToken: string

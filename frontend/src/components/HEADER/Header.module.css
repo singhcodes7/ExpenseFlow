@@ -1,35 +1,241 @@
 
+.header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    width: 100%;
+    background: var(--surface);
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.035);
+}
+
+.inner {
+    width: 100%;
+    max-width: 1440px;
+    min-height: 82px;
+    margin: 0 auto;
+    padding: 0 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+}
+
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    flex: 0 0 auto;
+    min-width: max-content;
+}
+
+.brandIcon {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    flex-shrink: 0;
+    border-radius: 14px;
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.brandText {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    white-space: nowrap;
+    font-size: 1.42rem;
+    font-weight: 750;
+    letter-spacing: -0.8px;
+    line-height: 1.2;
+}
+
+.brandAccent {
+    color: var(--accent);
+}
+.brandName {
+    display: inline-block;
+    white-space: nowrap;
+}
+.tagline {
+    margin-top: 5px;
+    color: var(--text-muted);
+    font-size: 0.63rem;
+    font-weight: 700;
+    letter-spacing: 1.8px;
+}
+
 .actions {
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-shrink: 0;
 }
 
 .profileButton {
-    padding: 9px 16px;
-    border: 1px solid var(--border-color, #d1d5db);
-    border-radius: 10px;
-    background: transparent;
-    color: inherit;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    min-height: 44px;
+    padding: 0 15px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--text);
     font: inherit;
-    font-weight: 600;
+    font-size: 0.9rem;
+    font-weight: 650;
+    white-space: nowrap;
     cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.profileIcon {
+    display: grid;
+    place-items: center;
+    color: var(--accent);
+}
+
+.profileArrow {
+    color: var(--text-muted);
+    font-size: 0.95rem;
 }
 
 .profileButton:hover {
-    background: rgba(128, 128, 128, 0.12);
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    transform: translateY(-1px);
 }
 
+.toggle {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
 
-@media (max-width: 600px) {
+.toggle:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+}
+
+.brand:focus-visible,
+.profileButton:focus-visible,
+.toggle:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 3px;
+}
+
+@media (max-width: 700px) {
+    .inner {
+        min-height: 72px;
+        padding: 0 18px;
+        gap: 12px;
+    }
+
+    .brand {
+        gap: 8px;
+    }
+
+    .brandIcon {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+    }
+
+    .brandText {
+        font-size: 1.1rem;
+        letter-spacing: -0.6px;
+    }
+
+    .tagline {
+        font-size: 0.52rem;
+        letter-spacing: 1px;
+    }
+
     .actions {
         gap: 8px;
-        flex-wrap: wrap;
     }
 
     .profileButton {
-        padding: 8px 12px;
-        font-size: 0.9rem;
+        min-height: 40px;
+        padding: 0 10px;
+        gap: 6px;
+        font-size: 0.82rem;
+    }
+
+    .toggle {
+        width: 40px;
+        height: 40px;
     }
 }
 
+@media (max-width: 420px) {
+    .inner {
+        padding: 0 10px;
+        gap: 8px;
+    }
+
+    .brand {
+        gap: 6px;
+    }
+
+    .brandIcon {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+    }
+
+    .brandText {
+        font-size: 0.95rem;
+        letter-spacing: -0.5px;
+    }
+
+    .tagline {
+        font-size: 0.43rem;
+        letter-spacing: 0.6px;
+    }
+
+    .actions {
+        gap: 6px;
+    }
+
+    .profileButton {
+        padding: 0 7px;
+        font-size: 0.75rem;
+    }
+
+    .profileArrow {
+        display: none;
+    }
+
+    .toggle {
+        width: 36px;
+        height: 36px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .profileButton,
+    .toggle {
+        transition: none;
+    }
+}

@@ -10,9 +10,13 @@ import rateLimit from "express-rate-limit";
 import cors from "cors";
 import "dotenv/config";
 import "./mailer.js"
-import { sendVerificationEmail } from "./mailer.js";
+import { sendVerificationEmail, sendOtpEmail } from "./mailer.js";
 import { sendPasswordResetEmail } from "./mailer.js";
 import helmet from "helmet";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+
 dotenv.config();
  
 const app = express();
@@ -49,10 +53,110 @@ app.use(
 );
 
 app.use(helmet());
+
+// Profile picture storage
+const UPLOAD_DIR = path.resolve(process.cwd(), "uploads");
+
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
+// Serve uploaded profile pictures
+app.use("/uploads", express.static(UPLOAD_DIR));
+
+const storage = multer.diskStorage({
+    destination: (_req, _file, cb) => {
+        cb(null, UPLOAD_DIR);
+    },
+    filename: (_req, file, cb) => {
+        const extensionMap: Record<string, string> = {
+            "image/jpeg": ".jpg",
+            "image/png": ".png",
+            "image/webp": ".webp",
+        };
+
+        const extension = extensionMap[file.mimetype];
+
+        if (!extension) {
+            return cb(new Error("Only JPG, PNG, and WEBP images are allowed"), "");
+        }
+
+        cb(null, `${crypto.randomUUID()}${extension}`);
+    },
+});
+
+const upload = multer({
+    storage,
+    limits: {
+        fileSize: 2 * 1024 * 1024, // 2 MB
+        files: 1,
+    },
+    fileFilter: (_req, file, cb) => {
+        const allowedTypes = [
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+        ];
+
+        if (!allowedTypes.includes(file.mimetype)) {
+            return cb(new Error("Only JPG, PNG, and WEBP images are allowed"));
+        }
+
+        cb(null, true);
+    },
+});
+
 // ==================== HELPERS ====================
 
 const sha256 = (value: string) =>
     crypto.createHash("sha256").update(value).digest("hex");
+
+
+const generateOtp = () =>
+    crypto.randomInt(0, 1_000_000).toString().padStart(6, "0");
+
+const hashOtp = (otp: string) => sha256(otp);
+
+async function issueOtp(
+    userId: number,
+    email: string,
+    purpose: "registration" | "login"
+) {
+    const otp = generateOtp();
+    const otpHash = hashOtp(otp);
+
+    const client = await pool.connect();
+
+    try {
+        await client.query("BEGIN");
+
+        // Invalidate previous unused OTPs for this purpose.
+        await client.query(
+            `UPDATE email_otps
+             SET used_at = NOW()
+             WHERE user_id = $1
+               AND purpose = $2
+               AND used_at IS NULL`,
+            [userId, purpose]
+        );
+
+        // Store only the hash; expire after five minutes.
+        await client.query(
+            `INSERT INTO email_otps
+                (user_id, otp_hash, purpose, expires_at)
+             VALUES ($1, $2, $3, NOW() + INTERVAL '5 minutes')`,
+            [userId, otpHash, purpose]
+        );
+
+        await client.query("COMMIT");
+    } catch (error) {
+        await client.query("ROLLBACK").catch(() => {});
+        throw error;
+    } finally {
+        client.release();
+    }
+
+    // Send only after the database transaction succeeds.
+    await sendOtpEmail(email, otp, purpose);
+}
 
 const signAccessToken = (userId: number) =>
     jwt.sign({ userId, type: "access" }, JWT_SECRET, {
@@ -367,6 +471,7 @@ const sensitiveActionLimiter = rateLimit({
 // ==================== REGISTER ====================
 
 
+
 app.post("/register", sensitiveActionLimiter, async (req, res) => {
     const result = registerSchema.safeParse(req.body);
 
@@ -378,7 +483,6 @@ app.post("/register", sensitiveActionLimiter, async (req, res) => {
     }
 
     const { name, email, password } = result.data;
-
     let client;
 
     try {
@@ -393,20 +497,11 @@ app.post("/register", sensitiveActionLimiter, async (req, res) => {
             });
         }
 
-        // Hash the user's password
         const passwordHash = await bcrypt.hash(password, 12);
-
-        // Generate verification token and its hash
-        const verificationToken = crypto
-            .randomBytes(32)
-            .toString("hex");
-
-        const verificationTokenHash = sha256(verificationToken);
 
         client = await pool.connect();
         await client.query("BEGIN");
 
-        // Create the user
         const newUser = await client.query(
             `INSERT INTO users (name, email, password_hash)
              VALUES ($1, $2, $3)
@@ -414,45 +509,35 @@ app.post("/register", sensitiveActionLimiter, async (req, res) => {
             [name, email, passwordHash]
         );
 
-        const userId = newUser.rows[0].id;
-
-        // Store only the hashed verification token
-        await client.query(
-            `INSERT INTO email_verification_tokens
-             (user_id, token_hash, expires_at)
-             VALUES ($1, $2, NOW() + INTERVAL '15 minutes')`,
-            [userId, verificationTokenHash]
-        );
-
-        // Commit the database transaction
         await client.query("COMMIT");
 
-        // Send the verification email after committing
+        const user = newUser.rows[0];
+
         try {
-            await sendVerificationEmail(email, verificationToken);
+            await issueOtp(user.id, user.email, "registration");
         } catch (emailError) {
-            console.error("Verification email failed:", emailError);
+            console.error("Registration OTP delivery failed:", emailError);
+
+            return res.status(503).json({
+                message:
+                    "Your account was created, but we couldn't send the OTP. Please try requesting a new code.",
+            });
         }
 
         return res.status(201).json({
             message:
-                "Registration successful. Please check your email to verify your account.",
-            user: newUser.rows[0],
+                "Registration successful. Enter the six-digit OTP sent to your email to verify your account.",
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+            },
         });
-
     } catch (error: any) {
         if (client) {
-            try {
-                await client.query("ROLLBACK");
-            } catch (rollbackError) {
-                console.error(
-                    "Register rollback error:",
-                    rollbackError
-                );
-            }
+            await client.query("ROLLBACK").catch(() => {});
         }
 
-        // Handle duplicate email race conditions
         if (error?.code === "23505") {
             return res.status(409).json({
                 message: "Email is already registered",
@@ -464,11 +549,212 @@ app.post("/register", sensitiveActionLimiter, async (req, res) => {
         return res.status(500).json({
             message: "Something went wrong",
         });
-
     } finally {
         client?.release();
     }
 });
+
+//====================verify registration otp============
+
+
+app.post(
+    "/verify-registration-otp",
+    sensitiveActionLimiter,
+    async (req, res) => {
+        const { email, otp } = req.body ?? {};
+
+        if (
+            typeof email !== "string" ||
+            typeof otp !== "string" ||
+            !/^\d{6}$/.test(otp)
+        ) {
+            return res.status(400).json({
+                message: "A valid email and six-digit OTP are required",
+            });
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+        let client;
+
+        try {
+            client = await pool.connect();
+            await client.query("BEGIN");
+
+            const userResult = await client.query(
+                `SELECT id, email_verified
+                 FROM users
+                 WHERE email = $1
+                 FOR UPDATE`,
+                [normalizedEmail]
+            );
+
+            if (userResult.rows.length === 0) {
+                await client.query("ROLLBACK");
+                return res.status(400).json({
+                    message: "Invalid or expired OTP",
+                });
+            }
+
+            const user = userResult.rows[0];
+
+            if (user.email_verified) {
+                await client.query("COMMIT");
+                return res.status(200).json({
+                    message: "Email is already verified. You can log in.",
+                });
+            }
+
+            const otpResult = await client.query(
+                `SELECT id, otp_hash, attempts
+                 FROM email_otps
+                 WHERE user_id = $1
+                   AND purpose = 'registration'
+                   AND used_at IS NULL
+                   AND expires_at > NOW()
+                 ORDER BY created_at DESC
+                 LIMIT 1
+                 FOR UPDATE`,
+                [user.id]
+            );
+
+            if (otpResult.rows.length === 0) {
+                await client.query("ROLLBACK");
+                return res.status(400).json({
+                    message: "Invalid or expired OTP. Request a new code.",
+                });
+            }
+
+            const record = otpResult.rows[0];
+
+            if (record.attempts >= 5) {
+                await client.query("ROLLBACK");
+                return res.status(429).json({
+                    message: "Too many incorrect attempts. Request a new OTP.",
+                });
+            }
+
+            if (hashOtp(otp) !== record.otp_hash.trim()) {
+                await client.query(
+                    `UPDATE email_otps
+                     SET attempts = attempts + 1
+                     WHERE id = $1`,
+                    [record.id]
+                );
+
+                await client.query("COMMIT");
+
+                return res.status(400).json({
+                    message: "Incorrect OTP",
+                });
+            }
+
+            await client.query(
+                `UPDATE email_otps
+                 SET used_at = NOW()
+                 WHERE id = $1`,
+                [record.id]
+            );
+
+            await client.query(
+                `UPDATE users
+                 SET email_verified = TRUE
+                 WHERE id = $1`,
+                [user.id]
+            );
+
+            await client.query("COMMIT");
+
+            return res.status(200).json({
+                message: "Email verified successfully. You can now log in.",
+            });
+        } catch (error) {
+            if (client) {
+                await client.query("ROLLBACK").catch(() => {});
+            }
+
+            console.error("Registration OTP verification error:", error);
+
+            return res.status(500).json({
+                message: "Something went wrong",
+            });
+        } finally {
+            client?.release();
+        }
+    }
+);
+
+//=====================Resend otp=====================
+
+app.post(
+    "/resend-registration-otp",
+    sensitiveActionLimiter,
+    async (req, res) => {
+        const { email } = req.body ?? {};
+
+        if (typeof email !== "string" || !email.trim()) {
+            return res.status(400).json({
+                message: "A valid email is required",
+            });
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+
+        try {
+            const result = await pool.query(
+                `SELECT id, email, email_verified
+                 FROM users
+                 WHERE email = $1`,
+                [normalizedEmail]
+            );
+
+            // Use the same response whether the account exists or not.
+            const message =
+                "If the account exists and needs verification, an OTP will be sent.";
+
+            if (
+                result.rows.length === 0 ||
+                result.rows[0].email_verified
+            ) {
+                return res.status(200).json({ message });
+            }
+
+            const user = result.rows[0];
+
+            // Enforce a 60-second resend cooldown.
+            const recentOtp = await pool.query(
+                `SELECT created_at
+                 FROM email_otps
+                 WHERE user_id = $1
+                   AND purpose = 'registration'
+                 ORDER BY created_at DESC
+                 LIMIT 1`,
+                [user.id]
+            );
+
+            if (recentOtp.rows.length > 0) {
+                const lastCreatedAt = new Date(
+                    recentOtp.rows[0].created_at
+                ).getTime();
+
+                if (Date.now() - lastCreatedAt < 60_000) {
+                    return res.status(429).json({
+                        message: "Please wait 60 seconds before requesting another OTP.",
+                    });
+                }
+            }
+
+            await issueOtp(user.id, user.email, "registration");
+
+            return res.status(200).json({ message });
+        } catch (error) {
+            console.error("Resend registration OTP error:", error);
+
+            return res.status(500).json({
+                message: "Something went wrong",
+            });
+        }
+    }
+);
 
 
 // ==================== VERIFY EMAIL ====================
@@ -639,6 +925,7 @@ app.post("/resend-verification", sensitiveActionLimiter, async (req, res) => {
 
 // ==================== LOGIN ====================
 
+
 app.post("/login", loginLimiter, async (req, res) => {
     try {
         const { email, password } = req.body ?? {};
@@ -654,13 +941,14 @@ app.post("/login", loginLimiter, async (req, res) => {
             });
         }
 
+        const normalizedEmail = email.trim().toLowerCase();
+
         const result = await pool.query(
             "SELECT * FROM users WHERE email = $1",
-            [email.trim().toLowerCase()]
+            [normalizedEmail]
         );
 
         if (result.rows.length === 0) {
-            // Keep response time similar to the "wrong password" path
             await bcrypt.compare(password, DUMMY_HASH);
 
             return res.status(401).json({
@@ -681,45 +969,168 @@ app.post("/login", loginLimiter, async (req, res) => {
             });
         }
 
-        // Checked after the password so that unverified status is only
-        // revealed to someone who knows the correct password.
         if (!user.email_verified) {
             return res.status(403).json({
                 message: "Please verify your email before logging in",
             });
         }
 
-        const accessToken = signAccessToken(user.id);
-        const refreshToken = signRefreshToken(user.id);
-
-        await pool.query(
-            `INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
-             VALUES ($1, $2, NOW() + INTERVAL '7 days')`,
-            [user.id, sha256(refreshToken)]
-        );
-
-        res.cookie("refreshToken", refreshToken, {
-            ...refreshCookieOptions,
-            maxAge: REFRESH_COOKIE_MAX_AGE,
-        });
+        // Password is correct. Send a login OTP, but issue NO tokens yet.
+        await issueOtp(user.id, user.email, "login");
 
         return res.status(200).json({
-            message: "Login successful",
-            accessToken,
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-            },
+            message: "A login verification code has been sent to your email.",
+            requiresOtp: true,
+            email: user.email,
         });
     } catch (error) {
-        console.error("Login error:", error);
+        console.error("Login OTP request error:", error);
 
         return res.status(500).json({
-            message: "Internal server error",
+            message: "Unable to start login verification. Please try again.",
         });
     }
 });
+
+//======================verify login otp===================
+
+
+app.post(
+    "/verify-login-otp",
+    sensitiveActionLimiter,
+    async (req, res) => {
+        const { email, otp } = req.body ?? {};
+
+        if (
+            typeof email !== "string" ||
+            typeof otp !== "string" ||
+            !/^\d{6}$/.test(otp)
+        ) {
+            return res.status(400).json({
+                message: "A valid email and six-digit OTP are required",
+            });
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+        let client;
+
+        try {
+            client = await pool.connect();
+            await client.query("BEGIN");
+
+            const userResult = await client.query(
+                `SELECT id, name, email, email_verified
+                 FROM users
+                 WHERE email = $1
+                 FOR UPDATE`,
+                [normalizedEmail]
+            );
+
+            if (
+                userResult.rows.length === 0 ||
+                !userResult.rows[0].email_verified
+            ) {
+                await client.query("ROLLBACK");
+                return res.status(400).json({
+                    message: "Invalid or expired OTP",
+                });
+            }
+
+            const user = userResult.rows[0];
+
+            const otpResult = await client.query(
+                `SELECT id, otp_hash, attempts
+                 FROM email_otps
+                 WHERE user_id = $1
+                   AND purpose = 'login'
+                   AND used_at IS NULL
+                   AND expires_at > NOW()
+                 ORDER BY created_at DESC
+                 LIMIT 1
+                 FOR UPDATE`,
+                [user.id]
+            );
+
+            if (otpResult.rows.length === 0) {
+                await client.query("ROLLBACK");
+                return res.status(400).json({
+                    message: "Invalid or expired OTP. Please log in again.",
+                });
+            }
+
+            const record = otpResult.rows[0];
+
+            if (record.attempts >= 5) {
+                await client.query("ROLLBACK");
+                return res.status(429).json({
+                    message: "Too many incorrect attempts. Please log in again.",
+                });
+            }
+
+            if (hashOtp(otp) !== record.otp_hash.trim()) {
+                await client.query(
+                    `UPDATE email_otps
+                     SET attempts = attempts + 1
+                     WHERE id = $1`,
+                    [record.id]
+                );
+
+                await client.query("COMMIT");
+
+                return res.status(400).json({
+                    message: "Incorrect OTP",
+                });
+            }
+
+            await client.query(
+                `UPDATE email_otps
+                 SET used_at = NOW()
+                 WHERE id = $1`,
+                [record.id]
+            );
+
+            const accessToken = signAccessToken(user.id);
+            const refreshToken = signRefreshToken(user.id);
+
+            await client.query(
+                `INSERT INTO refresh_tokens
+                    (user_id, token_hash, expires_at)
+                 VALUES ($1, $2, NOW() + INTERVAL '7 days')`,
+                [user.id, sha256(refreshToken)]
+            );
+
+            await client.query("COMMIT");
+
+            res.cookie("refreshToken", refreshToken, {
+                ...refreshCookieOptions,
+                maxAge: REFRESH_COOKIE_MAX_AGE,
+            });
+
+            return res.status(200).json({
+                message: "Login successful",
+                accessToken,
+                user: {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                },
+            });
+        } catch (error) {
+            if (client) {
+                await client.query("ROLLBACK").catch(() => {});
+            }
+
+            console.error("Login OTP verification error:", error);
+
+            return res.status(500).json({
+                message: "Unable to verify login OTP",
+            });
+        } finally {
+            client?.release();
+        }
+    }
+);
+
 
 // ==================== REFRESH TOKEN ====================
 
@@ -874,9 +1285,9 @@ app.get("/profile", authenticateToken, async (req, res) => {
         const userId = (req as any).userId;
 
         const result = await pool.query(
-            `SELECT id, name, email, created_at
-             FROM users
-             WHERE id = $1`,
+            `SELECT id, name, email, created_at, profile_picture
+FROM users
+WHERE id = $1`,
             [userId]
         );
 
@@ -915,9 +1326,9 @@ app.patch("/profile", authenticateToken, async (req, res) => {
 
         const result = await pool.query(
             `UPDATE users
-             SET name = $1
-             WHERE id = $2
-             RETURNING id, name, email, created_at`,
+SET name = $1
+WHERE id = $2
+RETURNING id, name, email, created_at, profile_picture`,
             [name, userId]
         );
 
@@ -939,6 +1350,80 @@ app.patch("/profile", authenticateToken, async (req, res) => {
         });
     }
 });
+
+app.post(
+    "/profile-picture",
+    authenticateToken,
+    (req, res, next) => {
+        upload.single("profilePicture")(req, res, (err) => {
+            if (err) {
+                if (err instanceof multer.MulterError) {
+                    if (err.code === "LIMIT_FILE_SIZE") {
+                        return res.status(413).json({
+                            message: "Image must be 2 MB or smaller.",
+                        });
+                    }
+
+                    return res.status(400).json({
+                        message: "Invalid upload.",
+                    });
+                }
+
+                return res.status(400).json({
+                    message: err.message || "Image upload failed.",
+                });
+            }
+
+            next();
+        });
+    },
+    async (req, res) => {
+        let uploadedPath: string | undefined;
+
+        try {
+            if (!req.file) {
+                return res.status(400).json({
+                    message: "Please select an image.",
+                });
+            }
+
+            uploadedPath = req.file.path;
+
+            const userId = (req as any).userId;
+            const picturePath = `/uploads/${req.file.filename}`;
+
+            const result = await pool.query(
+                `UPDATE users
+                 SET profile_picture = $1
+                 WHERE id = $2
+                 RETURNING id, name, email, created_at, profile_picture`,
+                [picturePath, userId]
+            );
+
+            if (result.rows.length === 0) {
+                fs.unlink(uploadedPath, () => {});
+                return res.status(404).json({
+                    message: "User not found.",
+                });
+            }
+
+            return res.status(200).json({
+                message: "Profile picture updated successfully.",
+                user: result.rows[0],
+            });
+        } catch (error) {
+            if (uploadedPath) {
+                fs.unlink(uploadedPath, () => {});
+            }
+
+            console.error("Profile picture upload error:", error);
+
+            return res.status(500).json({
+                message: "Internal server error.",
+            });
+        }
+    }
+);
 
 // ==================== FORGOT PASSWORD ====================
 

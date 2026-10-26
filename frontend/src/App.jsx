@@ -7,12 +7,20 @@ import Expenselist from "./components/EXPENSE LIST/Expenselist";
 import Expensechart from "./components/EXPENSE CHART/Expensechart";
 import styles from "./App.module.css";
 import Login from "./components/Login";
-import { apiRequest, refreshAccessToken } from "./api";
+import {
+  apiRequest,
+  apiUpload,
+  refreshAccessToken,
+  API_URL,
+} from "./api";
 import ResetPassword from "./components/Resetpassword";
 import Register from "./components/REGISTER/Register";
 import Toast from "./components/TOAST/Toast";
 import ChangePassword from "./components/Changepassword";
+
 function App() {
+  const [showLogoutAllModal, setShowLogoutAllModal] = useState(false);
+const [loggingOutAll, setLoggingOutAll] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [user, setUser] = useState(null);
   const [editedProfileName, setEditedProfileName] = useState("");
@@ -28,7 +36,9 @@ function App() {
     message: "",
     type: "success",
   });
-
+  const [selectedProfileImage, setSelectedProfileImage] = useState(null);
+const [profileImagePreview, setProfileImagePreview] = useState("");
+const [profileImageUploading, setProfileImageUploading] = useState(false);
   const [expensesLoading, setExpensesLoading] = useState(false);
 const [expensesError, setExpensesError] = useState("");
   const [expenses, setExpenses] = useState([]);
@@ -165,6 +175,32 @@ const handleLogoutAll = async () => {
     );
   } finally {
     setProfileSaving(false);
+  }
+};
+
+  const handleProfilePictureUpload = async () => {
+  if (!selectedProfileImage || profileImageUploading) return;
+
+  setProfileImageUploading(true);
+
+  try {
+    const formData = new FormData();
+    formData.append("profilePicture", selectedProfileImage);
+
+    const data = await apiUpload("/profile-picture", formData);
+
+    setUser(data.user);
+    setSelectedProfileImage(null);
+    setProfileImagePreview("");
+
+    showToast("Profile picture updated successfully.");
+  } catch (error) {
+    showToast(
+      error.message || "Unable to upload profile picture.",
+      "error"
+    );
+  } finally {
+    setProfileImageUploading(false);
   }
 };
 
@@ -423,34 +459,42 @@ if (sortoption === "nameDesc") {
     URL.revokeObjectURL(url);
 };
   
+
 if (showProfile) {
   if (showChangePassword) {
-  return (
-    <div className={darkMode ? styles.dark : styles.light}>
-      <Header
-        darkMode={darkMode}
-        onToggleTheme={() => setDarkMode(!darkMode)}
-        onOpenProfile={() => {
-          setShowChangePassword(false);
-        }}
-      />
-
-      <main className={styles.main}>
-        <ChangePassword
-          onBack={() => setShowChangePassword(false)}
-          onPasswordChanged={() => {
-            sessionStorage.removeItem("accessToken");
-            setUser(null);
-            setExpenses([]);
-            setShowChangePassword(false);
-            setShowProfile(false);
-            setShowRegister(false);
-          }}
+    return (
+      <div className={darkMode ? styles.dark : styles.light}>
+        <Header
+          darkMode={darkMode}
+          onToggleTheme={() => setDarkMode(!darkMode)}
+          onOpenProfile={() => setShowChangePassword(false)}
         />
-      </main>
-    </div>
-  );
-}
+        <main className={styles.main}>
+          <ChangePassword
+            onBack={() => setShowChangePassword(false)}
+            onPasswordChanged={() => {
+              sessionStorage.removeItem("accessToken");
+              setUser(null);
+              setExpenses([]);
+              setShowChangePassword(false);
+              setShowProfile(false);
+              setShowRegister(false);
+            }}
+          />
+        </main>
+      </div>
+    );
+  }
+
+  const profileName = user.name || "ExpenseFlow User";
+  const profileEmail = user.email || "Email unavailable";
+  const initials = profileName
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
 
   return (
     <div className={darkMode ? styles.dark : styles.light}>
@@ -460,71 +504,360 @@ if (showProfile) {
         onOpenProfile={() => setShowProfile(true)}
       />
 
-      <main className={styles.main}>
-        <h2>My Profile</h2>
-
-        <p>
-          <strong>Email:</strong> {user.email || "Not available"}
-        </p>
-
-        <form onSubmit={handleProfileUpdate}>
-          <label htmlFor="profileName">Full name</label>
-
-          <input
-            id="profileName"
-            type="text"
-            value={editedProfileName}
-            onChange={(e) => setEditedProfileName(e.target.value)}
-            placeholder="Enter your name"
-            required
-            disabled={profileSaving}
-          />
-
-          <button type="submit" disabled={profileSaving}>
-            {profileSaving ? "Saving..." : "Save changes"}
-          </button>
-        </form>
-
-        <button
-          type="button"
-          onClick={() => setShowChangePassword(true)}
-        >
-        Change Password
-        </button>
-
-        <button
-        type="button"
-        onClick={handleLogout}
-        >
-      Logout
-      </button>
-
-      <button
-  type="button"
-  onClick={handleLogoutAll}
->
-  Log out from all devices
-</button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setEditedProfileName(user.name || "");
-            setShowProfile(false);
-          }}
-        >
-          Back to Dashboard
-        </button>
-      </main>
-
       <Toast
         message={toast.message}
         type={toast.type}
         onClose={clearToast}
       />
+
+      
+<main className={styles.main}>
+    <section className={styles.profilePage}>
+        <button
+            type="button"
+            className={styles.backArrow}
+            onClick={() => {
+                setEditedProfileName(user.name || "");
+                setShowProfile(false);
+            }}
+            aria-label="Back to dashboard"
+            title="Back to dashboard"
+        >
+            <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+            >
+                <path d="M19 12H5" />
+                <path d="m12 19-7-7 7-7" />
+            </svg>
+        </button>
+
+        <header className={styles.profileHeading}>
+
+            <p className={styles.profileEyebrow}>ACCOUNT SETTINGS</p>
+            <h1 className={styles.profileTitle}>My profile</h1>
+            <p className={styles.profileSubtitle}>
+              Manage your personal information and account security.
+            </p>
+          </header>
+
+          <section className={styles.profileHero}>
+            <div className={styles.profileAvatar} aria-label="Profile picture">
+  {profileImagePreview ? (
+    <img
+      src={profileImagePreview}
+      alt="Selected profile preview"
+    />
+  ) : user.profile_picture ? (
+    <img
+      src={`${API_URL}${user.profile_picture}`}
+      alt={`${profileName}'s profile`}
+    />
+  ) : (
+    initials || "EF"
+  )}
+</div>
+
+            <div className={styles.profileHeroInfo}>
+              <h2 className={styles.profileName}>{profileName}</h2>
+              <p className={styles.profileEmail}>{profileEmail}</p>
+              <span className={styles.profileVerified}>
+                <span aria-hidden="true">●</span>
+                ExpenseFlow account
+              </span>
+            </div>
+            <div className={styles.profileImageControls}>
+  <label className={styles.profileButton}>
+    {selectedProfileImage ? "Choose another" : "Upload photo"}
+
+    <input
+      type="file"
+      accept="image/jpeg,image/png,image/webp"
+      hidden
+      disabled={profileImageUploading}
+      onChange={(e) => {
+        const file = e.target.files?.[0];
+        e.target.value = "";
+
+        if (!file) return;
+
+        if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+          showToast("Choose a JPG, PNG, or WEBP image.", "error");
+          return;
+        }
+
+        if (file.size > 2 * 1024 * 1024) {
+          showToast("Image must be 2 MB or smaller.", "error");
+          return;
+        }
+
+        setSelectedProfileImage(file);
+        setProfileImagePreview(URL.createObjectURL(file));
+      }}
+    />
+  </label>
+
+  {selectedProfileImage && (
+    <button
+      className={`${styles.profileButton} ${styles.profileButtonPrimary}`}
+      type="button"
+      disabled={profileImageUploading}
+      onClick={handleProfilePictureUpload}
+    >
+      {profileImageUploading ? "Uploading..." : "Save photo"}
+    </button>
+  )}
+
+  {profileImagePreview && (
+    <button
+      className={styles.profileButton}
+      type="button"
+      disabled={profileImageUploading}
+      onClick={() => {
+        URL.revokeObjectURL(profileImagePreview);
+        setProfileImagePreview("");
+        setSelectedProfileImage(null);
+      }}
+    >
+      Cancel
+    </button>
+  )}
+</div>
+          </section>
+
+          <div className={styles.profileGrid}>
+            <section className={styles.profileCard}>
+              <div className={styles.profileCardHeader}>
+                <div>
+                  <h2 className={styles.profileCardTitle}>
+                    Personal information
+                  </h2>
+                  <p className={styles.profileCardDescription}>
+                    Update the name associated with your account.
+                  </p>
+                </div>
+                <span aria-hidden="true">✎</span>
+              </div>
+
+              <form onSubmit={handleProfileUpdate}>
+                <div className={styles.profileField}>
+                  <label
+                    className={styles.profileLabel}
+                    htmlFor="profileName"
+                  >
+                    Full name
+                  </label>
+                  <input
+                    className={styles.profileInput}
+                    id="profileName"
+                    type="text"
+                    value={editedProfileName}
+                    onChange={(e) =>
+                      setEditedProfileName(e.target.value)
+                    }
+                    placeholder="Enter your full name"
+                    autoComplete="name"
+                    maxLength={100}
+                    required
+                    disabled={profileSaving}
+                  />
+                </div>
+
+                <div className={styles.profileField}>
+                  <label className={styles.profileLabel}>Email address</label>
+                  <div className={styles.profileReadOnly}>
+                    {profileEmail}
+                  </div>
+                  <p className={styles.profileCardDescription}>
+                    Your email is managed by your account settings.
+                  </p>
+                </div>
+
+                <div className={styles.profileButtonRow}>
+                  <button
+                    className={`${styles.profileButton} ${styles.profileButtonPrimary}`}
+                    type="submit"
+                    disabled={
+                      profileSaving ||
+                      !editedProfileName.trim() ||
+                      editedProfileName.trim() === (user.name || "")
+                    }
+                  >
+                    {profileSaving ? "Saving..." : "Save changes"}
+                  </button>
+
+                  <button
+                    className={styles.profileButton}
+                    type="button"
+                    disabled={profileSaving}
+                    onClick={() => setEditedProfileName(user.name || "")}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </section>
+
+            <section className={styles.profileCard}>
+              <div className={styles.profileCardHeader}>
+                <div>
+                  <h2 className={styles.profileCardTitle}>
+                    Security
+                  </h2>
+                  <p className={styles.profileCardDescription}>
+                    Keep your account and sessions secure.
+                  </p>
+                </div>
+                <span aria-hidden="true">⌑</span>
+              </div>
+
+              <div className={styles.profileAction}>
+                <div>
+                  <h3 className={styles.profileActionTitle}>
+                    Password
+                  </h3>
+                  <p className={styles.profileActionDescription}>
+                    Change your password to protect your account.
+                  </p>
+                </div>
+                <button
+                  className={styles.profileButton}
+                  type="button"
+                  onClick={() => setShowChangePassword(true)}
+                >
+                  Change
+                </button>
+              </div>
+
+              <div className={styles.profileAction}>
+                <div>
+                  <h3 className={styles.profileActionTitle}>
+                    Current session
+                  </h3>
+                  <p className={styles.profileActionDescription}>
+                    Sign out of this device.
+                  </p>
+                </div>
+                <button
+                  className={`${styles.profileButton} ${styles.profileButtonDanger}`}
+                  type="button"
+                  onClick={handleLogout}
+                >
+                  Log out
+                </button>
+              </div>
+
+              <div className={styles.profileAction}>
+                <div>
+                  <h3 className={styles.profileActionTitle}>
+                    All devices
+                  </h3>
+                  <p className={styles.profileActionDescription}>
+                    Sign out of all active sessions.
+                  </p>
+                </div>
+               <button
+  className={`${styles.profileButton} ${styles.profileButtonDanger}`}
+  type="button"
+  onClick={() => setShowLogoutAllModal(true)}
+>
+  Log out all
+</button>
+              </div>
+            </section>
+          </div>
+          
+          {showLogoutAllModal && (
+  <div
+    className={styles.modalOverlay}
+    onMouseDown={(e) => {
+      if (
+        e.target === e.currentTarget &&
+        !loggingOutAll
+      ) {
+        setShowLogoutAllModal(false);
+      }
+    }}
+  >
+    <section
+      className={styles.confirmModal}
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="logoutModalTitle"
+      aria-describedby="logoutModalDescription"
+    >
+      <div className={styles.modalIcon} aria-hidden="true">
+        !
+      </div>
+
+      <p className={styles.profileEyebrow}>
+        SECURITY CONFIRMATION
+      </p>
+
+      <h2
+        id="logoutModalTitle"
+        className={styles.confirmModalTitle}
+      >
+        Log out from all devices?
+      </h2>
+
+      <p
+        id="logoutModalDescription"
+        className={styles.profileCardDescription}
+      >
+        This will end your active sessions. You may need to
+        sign in again on your other devices.
+      </p>
+
+      <div className={styles.profileButtonRow}>
+        <button
+          className={styles.profileButton}
+          type="button"
+          disabled={loggingOutAll}
+          onClick={() => setShowLogoutAllModal(false)}
+        >
+          Cancel
+        </button>
+
+        <button
+          className={`${styles.profileButton} ${styles.profileButtonDanger}`}
+          type="button"
+          disabled={loggingOutAll}
+          onClick={async () => {
+            setLoggingOutAll(true);
+            try {
+              await handleLogoutAll();
+            } finally {
+              setLoggingOutAll(false);
+              setShowLogoutAllModal(false);
+            }
+          }}
+        >
+          {loggingOutAll ? "Logging out..." : "Yes, log out"}
+        </button>
+      </div>
+    </section>
+  </div>
+)}
+
+          <footer className={styles.profileFooter}>
+            <p className={styles.profileCardDescription}>
+              ExpenseFlow · Your finances, organized.
+            </p>
+          </footer>
+        </section>
+      </main>
     </div>
   );
 }
+
 
   return (
     <div className={darkMode ? styles.dark : styles.light}>
@@ -543,17 +876,29 @@ if (showProfile) {
         onClose={clearToast}
       />
 
-      <main className={styles.main}>
-        <div className={styles.dashboard}>
-          <Expenseform
+      
+<main className={styles.main}>
+    <section className={styles.dashboardHeading}>
+        <div>
+            <p className={styles.dashboardEyebrow}>YOUR MONEY, IN CONTROL</p>
+            <h1 className={styles.dashboardTitle}>Your dashboard</h1>
+            <p className={styles.dashboardSubtitle}>
+                Track your spending and keep your finances organized.
+            </p>
+        </div>
+    </section>
+
+    <Totalexpense expenses={expenses} />
+
+    <div className={styles.dashboard}>
+        <Expenseform
             categories={categories}
             setExpenses={setExpenses}
-          />
+        />
 
-          <Expensechart expenses={expenses} />
-        </div>
+        <Expensechart expenses={expenses} />
+    </div>
 
-        <Totalexpense expenses={expenses} />
 
         <div className={styles.controls}>
           <input
