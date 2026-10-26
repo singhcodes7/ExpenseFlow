@@ -37,13 +37,16 @@ const [loggingOutAll, setLoggingOutAll] = useState(false);
     type: "success",
   });
   const [selectedProfileImage, setSelectedProfileImage] = useState(null);
-const [profileImagePreview, setProfileImagePreview] = useState("");
-const [profileImageUploading, setProfileImageUploading] = useState(false);
+  const [profileImagePreview, setProfileImagePreview] = useState("");
+  const [profileImageUploading, setProfileImageUploading] = useState(false);
   const [expensesLoading, setExpensesLoading] = useState(false);
-const [expensesError, setExpensesError] = useState("");
+  const [expensesError, setExpensesError] = useState("");
   const [expenses, setExpenses] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [newCategory, setNewCategory] = useState("");
+  const [categoriesError, setCategoriesError] = useState("");
   const [showChangePassword, setShowChangePassword] = useState(false);
-  const categories = ["Food", "Travel", "Education"];
 
   const [searchterm, setsearchterm] = useState("");
   const [sortoption, setsortoption] = useState("");
@@ -67,6 +70,59 @@ const [expensesError, setExpensesError] = useState("");
   const clearToast = () => {
     setToast({ message: "", type: "success" });
   };
+
+  const loadCategories = async () => {
+  setCategoriesLoading(true);
+  setCategoriesError("");
+
+  try {
+    const data = await apiRequest("/categories");
+    setCategories(data.categories ?? []);
+  } catch (error) {
+    setCategoriesError(
+      error.message || "Failed to load categories"
+    );
+  } finally {
+    setCategoriesLoading(false);
+  }
+};
+
+  
+const handleAddCategory = async (e) => {
+  e.preventDefault();
+
+  const name = newCategory.trim();
+
+  if (!name) {
+    setCategoriesError("Please enter a category name.");
+    return;
+  }
+
+  setCategoriesError("");
+
+  try {
+    const data = await apiRequest("/categories", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    });
+
+    setCategories((previous) => [
+      ...previous,
+      data.category,
+    ].sort((a, b) => a.name.localeCompare(b.name)));
+
+    setNewCategory("");
+    setToast({
+      message: "Category added successfully!",
+      type: "success",
+    });
+  } catch (error) {
+    setCategoriesError(
+      error.message || "Failed to add category."
+    );
+  }
+};
+
 
   const loadExpenses = async () => {
   setExpensesLoading(true);
@@ -117,7 +173,7 @@ const handleLogout = async () => {
   setShowProfile(false);
   setShowChangePassword(false);
   setShowRegister(false);
-  setSearchterm?.("");
+  setsearchterm?.("");
 };
 
   
@@ -188,7 +244,7 @@ const handleLogoutAll = async () => {
     formData.append("profilePicture", selectedProfileImage);
 
     const data = await apiUpload("/profile-picture", formData);
-
+    console.log("Profile picture upload response:", data);
     setUser(data.user);
     setSelectedProfileImage(null);
     setProfileImagePreview("");
@@ -221,7 +277,10 @@ const handleLogoutAll = async () => {
     setUser(profileData.user ?? profileData);
 
     try {
-      await loadExpenses();
+      await Promise.all([
+    loadExpenses(),
+    loadCategories(),
+  ]);
     } catch {
       // loadExpenses already displays an error notification.
     }
@@ -890,14 +949,44 @@ if (showProfile) {
 
     <Totalexpense expenses={expenses} />
 
-    <div className={styles.dashboard}>
-        <Expenseform
-            categories={categories}
-            setExpenses={setExpenses}
-        />
+    
+<div className={styles.dashboard}>
+  <div className={styles.dashboardLeft}>
+    <Expenseform
+      categories={categories}
+      setExpenses={setExpenses}
+    />
 
-        <Expensechart expenses={expenses} />
-    </div>
+    <form
+      onSubmit={handleAddCategory}
+      className={styles.categoryForm}
+    >
+      <h3>Manage Categories</h3>
+      <p className={styles.categoryDescription}>
+        Create categories that fit your spending.
+      </p>
+
+      <div className={styles.categoryFormRow}>
+        <input
+          type="text"
+          value={newCategory}
+          onChange={(e) => setNewCategory(e.target.value)}
+          placeholder="New category name"
+          maxLength={50}
+          aria-label="New category name"
+        />
+        <button type="submit">Add</button>
+      </div>
+
+      {categoriesError && (
+        <p className={styles.categoryError}>{categoriesError}</p>
+      )}
+    </form>
+  </div>
+
+  <Expensechart expenses={expenses} />
+</div>
+
 
 
         <div className={styles.controls}>
@@ -930,11 +1019,11 @@ if (showProfile) {
             aria-label="Filter expenses by category"
           >
             <option value="All">All Categories</option>
-            {categories.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
+           {categories.map((category) => (
+          <option key={category.id} value={category.name}>
+          {category.name}
+        </option>
+        ))}
           </select>
           
           <button type="button" onClick={exportExpensesCSV}>
@@ -956,6 +1045,8 @@ if (showProfile) {
           setEditedAmount={setEditedAmount}
           editedCategory={editedCategory}
           setEditedCategory={setEditedCategory}
+          expensesLoading={expensesLoading}
+          expensesError={expensesError}
         />
       </main>
     </div>

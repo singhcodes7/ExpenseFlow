@@ -91,10 +91,10 @@ function Expenselist({
                         value={editedCategory}
                         onChange={(e) => setEditedCategory(e.target.value)}
                       >
-                        {categories.map((category) => (
-                          <option key={category} value={category}>
-                            {category}
-                          </option>
+                        {categories.map((item) => (
+                        <option key={item.id} value={item.name}>
+                          {item.name}
+                        </option> 
                         ))}
                       </select>
                     ) : (

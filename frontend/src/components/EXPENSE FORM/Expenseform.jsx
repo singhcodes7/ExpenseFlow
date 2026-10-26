@@ -144,9 +144,9 @@ function Expenseform({ categories, setExpenses }) {
                     <option value="">Select category</option>
 
                     {categories.map((item) => (
-                        <option key={item} value={item}>
-                            {item}
-                        </option>
+                    <option key={item.id} value={item.name}>
+                      {item.name}
+                    </option>
                     ))}
                 </select>
             </div>

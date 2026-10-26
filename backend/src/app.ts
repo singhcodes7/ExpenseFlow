@@ -52,7 +52,12 @@ app.use(
     })
 );
 
-app.use(helmet());
+
+app.use(
+    helmet({
+        crossOriginResourcePolicy: { policy: "cross-origin" },
+    })
+);
 
 // Profile picture storage
 const UPLOAD_DIR = path.resolve(process.cwd(), "uploads");
@@ -61,6 +66,7 @@ fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 // Serve uploaded profile pictures
 app.use("/uploads", express.static(UPLOAD_DIR));
+
 
 const storage = multer.diskStorage({
     destination: (_req, _file, cb) => {
@@ -264,6 +270,66 @@ function authorizeAdmin(req: any, res: any, next: any) {
 
 // ==================== EXPENSE ROUTES ====================
 
+app.get("/categories", authenticateToken, async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT id, name
+             FROM categories
+             WHERE user_id = $1
+             ORDER BY name ASC`,
+            [req.userId]
+        );
+
+        return res.json({ categories: result.rows });
+    } catch (error) {
+        console.error("Error fetching categories:", error);
+        return res.status(500).json({
+            message: "Failed to fetch categories",
+        });
+    }
+});
+
+app.post("/categories", authenticateToken, async (req, res) => {
+    const schema = z.object({
+        name: z.string().trim().min(1).max(50),
+    });
+
+    const parsed = schema.safeParse(req.body);
+
+    if (!parsed.success) {
+        return res.status(400).json({
+            message: "Category name must be between 1 and 50 characters",
+        });
+    }
+
+    try {
+        const name = parsed.data.name;
+
+        const result = await pool.query(
+            `INSERT INTO categories (user_id, name)
+             VALUES ($1, $2)
+             ON CONFLICT (user_id, name) DO NOTHING
+             RETURNING id, name`,
+            [req.userId, name]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(409).json({
+                message: "You already have this category",
+            });
+        }
+
+        return res.status(201).json({
+            category: result.rows[0],
+        });
+    } catch (error) {
+        console.error("Error creating category:", error);
+        return res.status(500).json({
+            message: "Failed to create category",
+        });
+    }
+});
+
 app.get("/expenses", authenticateToken, async (req, res) => {
     try {
         const result = await pool.query(
@@ -287,7 +353,7 @@ app.post("/expenses", authenticateToken, async (req, res) => {
     const schema = z.object({
         name: z.string().trim().min(1).max(255),
         amount: z.coerce.number().positive().finite(),
-        category: z.enum(["Food", "Travel", "Education"]),
+        category: z.string().trim().min(1).max(50),
     });
 
     const parsed = schema.safeParse(req.body);
@@ -301,6 +367,19 @@ app.post("/expenses", authenticateToken, async (req, res) => {
 
     try {
         const { name, amount, category } = parsed.data;
+
+        const categoryResult = await pool.query(
+    `SELECT id
+     FROM categories
+     WHERE user_id = $1 AND name = $2`,
+    [req.userId, category]
+);
+
+if (categoryResult.rows.length === 0) {
+    return res.status(400).json({
+        message: "Invalid category. Please select one of your categories.",
+    });
+}
 
         const result = await pool.query(
             `INSERT INTO expenses (user_id, name, amount, category)
@@ -332,7 +411,7 @@ app.put("/expenses/:id", authenticateToken, async (req, res) => {
     const schema = z.object({
         name: z.string().trim().min(1).max(255),
         amount: z.coerce.number().positive().finite(),
-        category: z.enum(["Food", "Travel", "Education"]),
+        category: z.string().trim().min(1).max(50),
     });
 
     const parsed = schema.safeParse(req.body);
