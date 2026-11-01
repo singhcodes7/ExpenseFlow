@@ -1,35 +1,59 @@
-
 .card {
     width: 100%;
     min-width: 0;
+    overflow: hidden;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-radius: 19px;
     box-shadow: var(--shadow);
-    overflow: hidden;
 }
 
+/* Header */
+
 .cardHeader {
-    padding: 24px 26px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 24px 25px 20px;
 }
 
 .eyebrow {
-    margin: 0 0 5px;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.13em;
-    text-transform: uppercase;
+    margin: 0 0 7px;
     color: var(--accent);
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: 1.5px;
 }
 
 .title {
     margin: 0;
-    font-family: 'Fraunces', serif;
-    font-size: 1.45rem;
-    font-weight: 600;
-    line-height: 1.35;
     color: var(--text);
+    font-family: Inter, sans-serif;
+    font-size: 19px;
+    font-weight: 750;
+    letter-spacing: -0.5px;
 }
+
+.subtitle {
+    margin: 7px 0 0;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.countBadge {
+    flex-shrink: 0;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: var(--surface-muted);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 650;
+}
+
+/* Table */
 
 .tableWrap {
     width: 100%;
@@ -39,7 +63,7 @@
 
 .card table {
     width: 100%;
-    min-width: 560px;
+    min-width: 620px;
     border-collapse: collapse;
     text-align: left;
 }
@@ -49,21 +73,19 @@
 }
 
 .card th {
-    padding: 14px 26px;
-    text-align: left;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.09em;
+    padding: 14px 22px;
     color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: 1px;
     white-space: nowrap;
 }
 
 .card td {
-    padding: 16px 26px;
+    padding: 15px 22px;
     border-top: 1px solid var(--border);
-    font-size: 0.92rem;
     color: var(--text);
+    font-size: 12px;
     vertical-align: middle;
 }
 
@@ -75,100 +97,135 @@
     background: var(--surface-muted);
 }
 
+.actionHeading {
+    text-align: center !important;
+}
+
+/* Expense name */
+
+.nameCell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 150px;
+}
+
+.transactionIcon {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    background: var(--surface-muted);
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 750;
+}
+
+.expenseName {
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 650;
+    overflow-wrap: anywhere;
+}
+
+/* Amount */
+
 .amountCell {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.88rem;
-    font-weight: 600;
+    color: var(--text) !important;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px !important;
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
 
-.editInput,
-.editSelect {
-    box-sizing: border-box;
-    width: 100%;
-    min-width: 90px;
-    padding: 9px 10px;
-    border: 1px solid var(--border);
-    border-radius: 9px;
-    background: var(--surface);
-    color: var(--text);
-    font: inherit;
-    font-size: 0.88rem;
-    outline: none;
-}
-
-.editInput:focus,
-.editSelect:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-soft);
-}
+/* Category badges */
 
 .badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 5px 11px;
-    border-radius: 999px;
-    font-size: 0.75rem;
+    padding: 6px 11px;
+    border-radius: 20px;
+    font-size: 10px;
     font-weight: 700;
-    color: #fff;
     white-space: nowrap;
 }
 
 .food {
-    background: var(--cat-food);
+    background: rgba(32, 197, 138, 0.12);
+    color: #20B982;
 }
 
 .travel {
-    background: var(--cat-travel);
+    background: rgba(87, 152, 245, 0.13);
+    color: #5798F5;
 }
 
 .education {
-    background: var(--cat-education);
+    background: rgba(167, 139, 250, 0.14);
+    color: #A78BFA;
 }
 
 .other {
-    background: var(--cat-default);
+    background: var(--surface-muted);
+    color: var(--text-muted);
 }
 
+/* Actions */
+
 .actions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    justify-content: flex-start;
+    text-align: center;
     white-space: nowrap;
+}
+
+.actionGroup {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
 }
 
 .iconButton,
 .iconButtonDanger {
+    width: 33px;
+    height: 33px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
-    width: 36px;
-    height: 36px;
     padding: 0;
-    border-radius: 10px;
     border: 1px solid var(--border);
+    border-radius: 9px;
     background: var(--surface);
     color: var(--text-muted);
     cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease,
-        border-color 0.15s ease, transform 0.15s ease;
+    transition:
+        background 0.15s ease,
+        color 0.15s ease,
+        border-color 0.15s ease,
+        transform 0.15s ease;
+}
+
+.iconButton svg,
+.iconButtonDanger svg {
+    width: 15px;
+    height: 15px;
 }
 
 .iconButton:hover {
-    color: var(--accent);
     border-color: var(--accent);
     background: var(--accent-soft);
+    color: var(--accent);
     transform: translateY(-1px);
 }
 
 .iconButtonDanger:hover {
-    color: #E0594C;
     border-color: #E0594C;
     background: rgba(224, 89, 76, 0.12);
+    color: #E0594C;
     transform: translateY(-1px);
 }
 
@@ -178,68 +235,153 @@
     outline-offset: 2px;
 }
 
-.saveButton {
-    padding: 9px 16px;
+/* Editing */
+
+.editInput,
+.editSelect {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 85px;
+    height: 37px;
+    padding: 7px 9px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    outline: none;
+    background: var(--surface-muted);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 12px;
+}
+
+.editInput:focus,
+.editSelect:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.editActions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.saveButton,
+.cancelButton {
+    padding: 8px 11px;
     border: none;
-    border-radius: 9px;
-    background: var(--accent);
-    color: white;
-    font-size: 0.85rem;
+    border-radius: 8px;
+    font-size: 11px;
     font-weight: 700;
     cursor: pointer;
     transition: background 0.15s ease;
+}
+
+.saveButton {
+    background: var(--accent);
+    color: white;
 }
 
 .saveButton:hover {
     background: var(--accent-hover);
 }
 
+.cancelButton {
+    border: 1px solid var(--border);
+    background: var(--surface-muted);
+    color: var(--text-muted);
+}
+
+.cancelButton:hover {
+    background: var(--border);
+}
+
+/* Empty and loading states */
+
 .empty {
+    min-height: 240px;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 7px;
-    padding: 52px 24px;
-    color: var(--text-muted);
+    flex-direction: column;
+    gap: 9px;
+    padding: 35px 22px;
     text-align: center;
+}
+
+.emptyIcon {
+    width: 46px;
+    height: 46px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 5px;
+    border-radius: 14px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 23px;
+    font-weight: 700;
 }
 
 .empty p {
     margin: 0;
-    font-size: 1rem;
-    font-weight: 700;
     color: var(--text);
+    font-size: 14px;
+    font-weight: 700;
 }
 
 .empty span {
-    font-size: 0.87rem;
+    max-width: 290px;
+    color: var(--text-muted);
+    font-size: 12px;
     line-height: 1.6;
 }
 
-@media (max-width: 600px) {
+.loadingSpinner {
+    width: 25px;
+    height: 25px;
+    margin-bottom: 7px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Responsive */
+
+@media (max-width: 650px) {
     .card {
-        border-radius: 13px;
+        border-radius: 16px;
     }
 
     .cardHeader {
-        padding: 20px 18px 14px;
+        padding: 20px 17px 16px;
     }
 
     .title {
-        font-size: 1.3rem;
+        font-size: 17px;
+    }
+
+    .countBadge {
+        padding: 7px 9px;
+        font-size: 10px;
     }
 
     .card th {
-        padding: 12px 16px;
+        padding: 12px 15px;
     }
 
     .card td {
-        padding: 14px 16px;
+        padding: 13px 15px;
     }
 
     .empty {
-        padding: 40px 18px;
+        min-height: 210px;
     }
 }
 
@@ -247,26 +389,12 @@
     .card tbody tr,
     .iconButton,
     .iconButtonDanger,
-    .saveButton {
+    .saveButton,
+    .cancelButton {
         transition: none;
     }
-}
 
-.card th:last-child,
-.card td:last-child {
-    width: 120px;
-}
-
-.card th:nth-child(2),
-.card td:nth-child(2) {
-    width: 190px;
-}
-
-.card th:nth-child(3),
-.card td:nth-child(3) {
-    width: 180px;
-}
-
-.card td:first-child {
-    overflow-wrap: anywhere;
+    .loadingSpinner {
+        animation-duration: 1.5s;
+    }
 }

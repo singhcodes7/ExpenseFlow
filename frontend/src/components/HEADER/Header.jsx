@@ -1,9 +1,8 @@
-
 import styles from "./Header.module.css";
 
-function Header({ darkMode, onToggleTheme, onOpenProfile }) {
+function Header({ darkMode, onToggleTheme, onOpenProfile, compact = false }) {
     return (
-        <header className={styles.header}>
+        <header className={`${styles.header} ${compact ? styles.compact : ""}`}>
             <div className={styles.inner}>
                 <button
                     type="button"
@@ -28,10 +27,10 @@ function Header({ darkMode, onToggleTheme, onOpenProfile }) {
                     </span>
 
                     <span className={styles.brandText}>
-                    <span className={styles.brandName}>
-                        Expense<span className={styles.brandAccent}>Flow</span>
-                    </span>
-                    <span className={styles.tagline}>PERSONAL FINANCE</span>
+                        <span className={styles.brandName}>
+                            Expense<span className={styles.brandAccent}>Flow</span>
+                        </span>
+                        <span className={styles.tagline}>PERSONAL FINANCE</span>
                     </span>
                 </button>
 

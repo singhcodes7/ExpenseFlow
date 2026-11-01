@@ -1,10 +1,9 @@
-
 import React, { useState } from "react";
 import styles from "./Expenseform.module.css";
 import { apiRequest } from "../../api";
 import Toast from "../TOAST/Toast";
 
-function Expenseform({ categories, setExpenses }) {
+function Expenseform({ categories = [], setExpenses }) {
     const [name, setName] = useState("");
     const [amount, setAmount] = useState("");
     const [category, setCategory] = useState("");
@@ -33,8 +32,14 @@ function Expenseform({ categories, setExpenses }) {
             return;
         }
 
-        if (!Number.isFinite(Number(amount)) || Number(amount) <= 0) {
-            showToast("Enter a valid amount greater than zero.", "error");
+        if (
+            !Number.isFinite(Number(amount)) ||
+            Number(amount) <= 0
+        ) {
+            showToast(
+                "Enter a valid amount greater than zero.",
+                "error"
+            );
             return;
         }
 
@@ -62,7 +67,8 @@ function Expenseform({ categories, setExpenses }) {
             showToast("Expense added successfully.");
         } catch (error) {
             showToast(
-                error.message || "Unable to add the expense. Please try again.",
+                error.message ||
+                    "Unable to add the expense. Please try again.",
                 "error"
             );
         } finally {
@@ -82,73 +88,92 @@ function Expenseform({ categories, setExpenses }) {
                 onClose={clearToast}
             />
 
-            <p className={styles.eyebrow}>New entry</p>
-            <h2 className={styles.title}>Add expense</h2>
+            <div className={styles.fields}>
 
-            <div className={styles.field}>
-                <label
-                    className={styles.fieldLabel}
-                    htmlFor="expense-name"
-                >
-                    Name
-                </label>
+                <div className={styles.field}>
+                    <label
+                        className={styles.fieldLabel}
+                        htmlFor="expense-name"
+                    >
+                        Expense name
+                    </label>
 
-                <input
-                    id="expense-name"
-                    className={styles.input}
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    disabled={loading}
-                />
-            </div>
+                    <input
+                        id="expense-name"
+                        className={styles.input}
+                        type="text"
+                        placeholder="e.g. Groceries"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                        disabled={loading}
+                        maxLength={100}
+                    />
+                </div>
 
-            <div className={styles.field}>
-                <label
-                    className={styles.fieldLabel}
-                    htmlFor="expense-amount"
-                >
-                    Amount (₹)
-                </label>
+                <div className={styles.field}>
+                    <label
+                        className={styles.fieldLabel}
+                        htmlFor="expense-amount"
+                    >
+                        Amount
+                    </label>
 
-                <input
-                    id="expense-amount"
-                    className={styles.input}
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    required
-                    disabled={loading}
-                />
-            </div>
+                    <div className={styles.amountWrapper}>
+                        <span className={styles.currencySymbol}>
+                            ₹
+                        </span>
 
-            <div className={styles.field}>
-                <label
-                    className={styles.fieldLabel}
-                    htmlFor="expense-category"
-                >
-                    Category
-                </label>
+                        <input
+                            id="expense-amount"
+                            className={styles.amountInput}
+                            type="number"
+                            placeholder="0.00"
+                            min="0.01"
+                            step="0.01"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            required
+                            disabled={loading}
+                        />
+                    </div>
+                </div>
 
-                <select
-                    id="expense-category"
-                    className={styles.select}
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    required
-                    disabled={loading}
-                >
-                    <option value="">Select category</option>
+                <div className={styles.field}>
+                    <label
+                        className={styles.fieldLabel}
+                        htmlFor="expense-category"
+                    >
+                        Category
+                    </label>
 
-                    {categories.map((item) => (
-                    <option key={item.id} value={item.name}>
-                      {item.name}
-                    </option>
-                    ))}
-                </select>
+                    <select
+                        id="expense-category"
+                        className={styles.select}
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        required
+                        disabled={loading}
+                    >
+                        <option value="">
+                            Select a category
+                        </option>
+
+                        {categories.map((item) => {
+                            const value =
+                                typeof item === "string"
+                                    ? item
+                                    : item.name;
+
+                            return (
+                                <option key={value} value={value}>
+                                    {value}
+                                </option>
+                            );
+                        })}
+                    </select>
+                </div>
+
             </div>
 
             <button
@@ -156,8 +181,22 @@ function Expenseform({ categories, setExpenses }) {
                 type="submit"
                 disabled={loading}
             >
-                {loading ? "Saving..." : "Add expense"}
+                {loading ? (
+                    <>
+                        <span className={styles.spinner} />
+                        Saving expense...
+                    </>
+                ) : (
+                    <>
+                        <span className={styles.buttonIcon}>+</span>
+                        Add expense
+                    </>
+                )}
             </button>
+
+            <p className={styles.footerText}>
+                Your transaction will be saved securely.
+            </p>
         </form>
     );
 }
