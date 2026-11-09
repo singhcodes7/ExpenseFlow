@@ -132,7 +132,7 @@ function App() {
   const [categories, setCategories] = useState([]);
   const [, setCategoriesLoading] = useState(false);
   const [newCategory, setNewCategory] = useState("");
-  const [categoriesError, setCategoriesError] = useState("");
+  const [, setCategoriesError] = useState("");
 
   const [showChangePassword, setShowChangePassword] = useState(false);
 
@@ -177,41 +177,6 @@ function App() {
       setCategoriesError(error.message || "Failed to load categories");
     } finally {
       setCategoriesLoading(false);
-    }
-  };
-
-  const handleAddCategory = async (e) => {
-    e.preventDefault();
-
-    const name = newCategory.trim();
-
-    if (!name) {
-      setCategoriesError("Please enter a category name.");
-      return;
-    }
-
-    setCategoriesError("");
-
-    try {
-      const data = await apiRequest("/categories", {
-        method: "POST",
-        body: JSON.stringify({ name }),
-      });
-
-      setCategories((previous) =>
-        [...previous, data.category].sort((a, b) =>
-          a.name.localeCompare(b.name),
-        ),
-      );
-
-      setNewCategory("");
-
-      setToast({
-        message: "Category added successfully!",
-        type: "success",
-      });
-    } catch (error) {
-      setCategoriesError(error.message || "Failed to add category.");
     }
   };
 
@@ -1152,7 +1117,6 @@ function App() {
     lastMonthSpent > 0
       ? Math.round((Math.abs(spendingDiff) / lastMonthSpent) * 100)
       : 0;
-  const currentMonthStr = now.toISOString().slice(0, 7);
   const formattedMonthlySpent = new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",

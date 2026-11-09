@@ -17,10 +17,6 @@ function BudgetCard({ totalSpent = 0 }) {
   const [inputAmount, setInputAmount] = useState("");
   const currentMonth = new Date().toISOString().slice(0, 7);
 
-  useEffect(() => {
-    fetchBudget();
-  }, []);
-
   const fetchBudget = async () => {
     try {
       const data = await apiRequest(`/api/budget?month=${currentMonth}`);
@@ -31,6 +27,10 @@ function BudgetCard({ totalSpent = 0 }) {
       console.error("Failed to load budget", err);
     }
   };
+
+  useEffect(() => {
+    fetchBudget();
+  }, []);
 
   const handleSaveBudget = async (e) => {
     e.preventDefault();
