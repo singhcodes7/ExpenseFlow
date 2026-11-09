@@ -29,6 +29,7 @@ function BudgetCard({ totalSpent = 0 }) {
   }, [currentMonth]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchBudget();
   }, [fetchBudget]);
 
