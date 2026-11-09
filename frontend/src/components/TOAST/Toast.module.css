@@ -14,9 +14,9 @@
     max-width: calc(100vw - 48px);
     padding: 15px 18px;
 
-    background: #ffffff;
-    color: #1f2937;
-    border: 1px solid #e5e7eb;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
     border-left: 4px solid #16a34a;
     border-radius: 10px;
 

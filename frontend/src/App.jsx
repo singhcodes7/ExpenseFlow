@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import Header from "./components/HEADER/Header";
 import Expenseform from "./components/EXPENSE FORM/Expenseform";
 import IncomeForm from "./components/INCOME/Incomeform";
 import IncomeList from "./components/INCOME/IncomeList";
 import Expenselist from "./components/EXPENSE LIST/Expenselist";
-import Expensechart from "./components/EXPENSE CHART/Expensechart";
 import styles from "./App.module.css";
 import Login from "./components/Login";
 import { apiRequest, apiUpload, refreshAccessToken, API_URL } from "./api";
@@ -12,7 +11,18 @@ import ResetPassword from "./components/Resetpassword";
 import Register from "./components/REGISTER/Register";
 import Toast from "./components/TOAST/Toast";
 import ChangePassword from "./components/Changepassword";
-
+import BudgetCard from "./components/BUDGETS/BudgetCard";
+import ProfileCropModal from "./components/PROFILE/ProfileCropModal";
+const Expensechart = lazy(
+  () => import("./components/EXPENSE CHART/Expensechart"),
+);
+const NAV_ITEMS = [
+  { id: "overview", icon: "▦", label: "Overview" },
+  { id: "analytics", icon: "◔", label: "Analytics" },
+  { id: "transactions", icon: "⇄", label: "Transactions" },
+  { id: "add-expense", icon: "＋", label: "Add expense" },
+  { id: "income", icon: "₹", label: "Income" },
+];
 function App() {
   const [showLogoutAllModal, setShowLogoutAllModal] = useState(false);
   const [loggingOutAll, setLoggingOutAll] = useState(false);
@@ -22,7 +32,69 @@ function App() {
   const [profileSaving, setProfileSaving] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [authChecking, setAuthChecking] = useState(true);
+  const [dateRangeFilter, setDateRangeFilter] = useState("all");
+  // Sidebar highlight follows the section currently in view
+  const [activeSection, setActiveSection] = useState("overview");
+  const navLocked = useRef(false);
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [tempImageSrc, setTempImageSrc] = useState("");
+  const [isEditingName, setIsEditingName] = useState(false);
+  const handleNavClick = (id) => {
+    // ignore scroll updates while the smooth scroll is running
+    navLocked.current = true;
+    setTimeout(() => {
+      navLocked.current = false;
+    }, 1000);
+    setActiveSection(id);
+  };
 
+  useEffect(() => {
+    if (!user || showProfile) return;
+
+    const sectionIds = ["overview", "analytics", "transactions", "income"];
+    let ticking = false;
+
+    const update = () => {
+      ticking = false;
+      if (navLocked.current) return;
+
+      const atBottom =
+        window.innerHeight + window.scrollY >=
+        document.documentElement.scrollHeight - 4;
+
+      let current = sectionIds[0];
+      if (atBottom) {
+        current = sectionIds[sectionIds.length - 1];
+      } else {
+        for (const id of sectionIds) {
+          const el = document.getElementById(id);
+          if (el && el.getBoundingClientRect().top <= 120) current = id;
+        }
+      }
+
+      setActiveSection((prev) =>
+        (prev === "add-expense" ? "analytics" : prev) === current
+          ? prev
+          : current,
+      );
+    };
+
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(update);
+      }
+    };
+
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [user, showProfile]);
   const [emailVerified, setEmailVerified] = useState(
     new URLSearchParams(window.location.search).get("verified") === "success",
   );
@@ -52,13 +124,13 @@ function App() {
   const [incomeError, setIncomeError] = useState("");
 
   const [incomeCategories, setIncomeCategories] = useState([]);
-  const [incomeCategoriesLoading, setIncomeCategoriesLoading] = useState(false);
-  const [incomeCategoriesError, setIncomeCategoriesError] = useState("");
+  const [, setIncomeCategoriesLoading] = useState(false);
+  const [, setIncomeCategoriesError] = useState("");
 
   const [incomeSummary, setIncomeSummary] = useState(null);
 
   const [categories, setCategories] = useState([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [, setCategoriesLoading] = useState(false);
   const [newCategory, setNewCategory] = useState("");
   const [categoriesError, setCategoriesError] = useState("");
 
@@ -72,7 +144,7 @@ function App() {
   const [editedName, setEditedName] = useState("");
   const [editedAmount, setEditedAmount] = useState("");
   const [editedCategory, setEditedCategory] = useState("");
-
+  const [editedDate, setEditedDate] = useState("");
   const [incomeEditingId, setIncomeEditingId] = useState(null);
   const [incomeEditedName, setIncomeEditedName] = useState("");
   const [incomeEditedAmount, setIncomeEditedAmount] = useState("");
@@ -206,6 +278,16 @@ function App() {
   const handleLogin = async (loggedInUser) => {
     setUser(loggedInUser);
 
+    // Fetch fresh profile data immediately so profile_picture is populated on login
+    try {
+      const profileData = await apiRequest("/profile");
+      if (profileData && profileData.user) {
+        setUser(profileData.user);
+      }
+    } catch (err) {
+      console.error("Failed to fetch profile on login:", err);
+    }
+
     await Promise.all([
       loadExpenses(),
       loadCategories(),
@@ -220,7 +302,7 @@ function App() {
       await apiRequest("/logout", {
         method: "POST",
       });
-    } catch (error) {
+    } catch {
       showToast(
         "Unable to confirm logout with the server. Please try again.",
         "error",
@@ -292,6 +374,7 @@ function App() {
 
       setUser(data.user);
       setEditedProfileName(data.user.name);
+      setIsEditingName(false);
       showToast("Profile updated successfully.");
     } catch (error) {
       showToast(
@@ -367,7 +450,7 @@ function App() {
           loadIncomeCategories(),
           loadIncomeSummary(),
         ]);
-      } catch (error) {
+      } catch {
         if (active) {
           sessionStorage.removeItem("accessToken");
         }
@@ -383,6 +466,7 @@ function App() {
     return () => {
       active = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -402,6 +486,7 @@ function App() {
     setEditedName(expense.name);
     setEditedAmount(String(expense.amount));
     setEditedCategory(expense.category);
+    setEditedDate(expense.created_at ? expense.created_at.slice(0, 10) : "");
   };
 
   const startIncomeEditing = (item) => {
@@ -412,6 +497,12 @@ function App() {
   };
 
   const deleteexpense = async (id) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this expense transaction?",
+    );
+
+    if (!confirmed) return;
+
     try {
       await apiRequest(`/expenses/${id}`, {
         method: "DELETE",
@@ -466,6 +557,7 @@ function App() {
           name: editedName.trim(),
           amount: Number(editedAmount),
           category: editedCategory,
+          created_at: editedDate ? `${editedDate}T00:00:00.000Z` : undefined,
         }),
       });
 
@@ -706,7 +798,11 @@ function App() {
                   />
                 ) : user.profile_picture ? (
                   <img
-                    src={`${API_URL}${user.profile_picture}`}
+                    src={
+                      user.profile_picture.startsWith("http")
+                        ? user.profile_picture
+                        : `${API_URL}${user.profile_picture}`
+                    }
                     alt={`${profileName}'s profile`}
                   />
                 ) : (
@@ -717,10 +813,6 @@ function App() {
               <div className={styles.profileHeroInfo}>
                 <h2 className={styles.profileName}>{profileName}</h2>
                 <p className={styles.profileEmail}>{profileEmail}</p>
-                <span className={styles.profileVerified}>
-                  <span aria-hidden="true">●</span>
-                  ExpenseFlow account
-                </span>
               </div>
 
               <div className={styles.profileImageControls}>
@@ -749,13 +841,17 @@ function App() {
                         return;
                       }
 
-                      if (file.size > 2 * 1024 * 1024) {
-                        showToast("Image must be 2 MB or smaller.", "error");
+                      if (file.size > 5 * 1024 * 1024) {
+                        showToast("Image must be 5 MB or smaller.", "error");
                         return;
                       }
 
-                      setSelectedProfileImage(file);
-                      setProfileImagePreview(URL.createObjectURL(file));
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        setTempImageSrc(reader.result);
+                        setShowCropModal(true);
+                      };
+                      reader.readAsDataURL(file);
                     }}
                   />
                 </label>
@@ -804,38 +900,64 @@ function App() {
                 </div>
               </div>
 
-              <form
-                onSubmit={handleProfileUpdate}
-                className={styles.profileForm}
-              >
-                <label htmlFor="profile-name">Full name</label>
-                <input
-                  id="profile-name"
-                  name="profileName"
-                  type="text"
-                  value={editedProfileName}
-                  onChange={(e) => setEditedProfileName(e.target.value)}
-                  maxLength={80}
-                  required
-                />
+              <div className={styles.inlineProfileDetails}>
+                <div className={styles.profileFieldRow}>
+                  <div className={styles.profileFieldMeta}>
+                    <label>Full name</label>
+                    {isEditingName ? (
+                      <input
+                        type="text"
+                        className={styles.inlineNameInput}
+                        value={editedProfileName}
+                        onChange={(e) => setEditedProfileName(e.target.value)}
+                        maxLength={80}
+                        autoFocus
+                        disabled={profileSaving}
+                      />
+                    ) : (
+                      <span className={styles.profileValueText}>
+                        {user.name || "ExpenseFlow User"}
+                      </span>
+                    )}
+                  </div>
 
-                <label htmlFor="profile-email">Email address</label>
-                <input
-                  id="profile-email"
-                  name="profileEmail"
-                  type="email"
-                  value={profileEmail}
-                  disabled
-                />
-
-                <button
-                  type="submit"
-                  className={styles.profileSaveButton}
-                  disabled={profileSaving}
-                >
-                  {profileSaving ? "Saving..." : "Save changes"}
-                </button>
-              </form>
+                  {!isEditingName ? (
+                    <button
+                      type="button"
+                      className={styles.pencilEditBtn}
+                      onClick={() => {
+                        setEditedProfileName(user.name || "");
+                        setIsEditingName(true);
+                      }}
+                      aria-label="Edit name"
+                    >
+                      ✏️ Edit
+                    </button>
+                  ) : (
+                    <div className={styles.inlineActionRow}>
+                      <button
+                        type="button"
+                        className={styles.cancelButtonInline}
+                        onClick={() => setIsEditingName(false)}
+                        disabled={profileSaving}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.saveButtonInline}
+                        onClick={async (e) => {
+                          await handleProfileUpdate(e);
+                          if (!profileSaving) setIsEditingName(false);
+                        }}
+                        disabled={profileSaving}
+                      >
+                        {profileSaving ? "Saving..." : "Save"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </section>
 
             <section className={styles.profileCard}>
@@ -901,7 +1023,7 @@ function App() {
                     account.
                   </p>
 
-                  <div className={styles.modalActions}>
+                  <div className={styles.profileButtonRow}>
                     <button
                       type="button"
                       className={styles.profileButton}
@@ -926,6 +1048,21 @@ function App() {
                   </div>
                 </section>
               </div>
+            )}
+            {showCropModal && (
+              <ProfileCropModal
+                imgSrc={tempImageSrc}
+                onCancel={() => {
+                  setShowCropModal(false);
+                  setTempImageSrc("");
+                }}
+                onCropComplete={(croppedFile) => {
+                  setSelectedProfileImage(croppedFile);
+                  setProfileImagePreview(URL.createObjectURL(croppedFile));
+                  setShowCropModal(false);
+                  setTempImageSrc("");
+                }}
+              />
             )}
 
             <footer className={styles.profileFooter}>
@@ -979,6 +1116,48 @@ function App() {
     maximumFractionDigits: 0,
   }).format(totalSpent);
 
+  const now = new Date();
+  const monthlySpent = expenses
+    .filter((item) => {
+      if (!item.created_at) return false;
+      const d = new Date(item.created_at);
+      const isThisMonth =
+        d.getMonth() === now.getMonth() &&
+        d.getFullYear() === now.getFullYear();
+
+      // Explicitly check that it is NOT a capital expense
+      const isCapital =
+        item.is_capital_expense === true || item.is_capital_expense === "true";
+
+      return isThisMonth && !isCapital;
+    })
+    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  // Calculate previous month's operating expenses for comparison
+  const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthSpent = expenses
+    .filter((item) => {
+      if (!item.created_at) return false;
+      const d = new Date(item.created_at);
+      const isLastMonth =
+        d.getMonth() === lastMonthDate.getMonth() &&
+        d.getFullYear() === lastMonthDate.getFullYear();
+      const isCapital =
+        item.is_capital_expense === true || item.is_capital_expense === "true";
+      return isLastMonth && !isCapital;
+    })
+    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+
+  const spendingDiff = monthlySpent - lastMonthSpent;
+  const spendingPercentChange =
+    lastMonthSpent > 0
+      ? Math.round((Math.abs(spendingDiff) / lastMonthSpent) * 100)
+      : 0;
+  const currentMonthStr = now.toISOString().slice(0, 7);
+  const formattedMonthlySpent = new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(monthlySpent);
   const greetingName = (user.name || "there").trim().split(/\s+/)[0];
 
   const filteredexpenses = expenses.filter((expense) => {
@@ -989,7 +1168,37 @@ function App() {
     const matchesCategory =
       filterCategory === "All" || expense.category === filterCategory;
 
-    return matchesSearch && matchesCategory;
+    let matchesDate = true;
+    if (expense.created_at) {
+      const expenseDate = new Date(expense.created_at);
+
+      if (dateRangeFilter === "today") {
+        matchesDate =
+          expenseDate.getDate() === now.getDate() &&
+          expenseDate.getMonth() === now.getMonth() &&
+          expenseDate.getFullYear() === now.getFullYear();
+      } else if (dateRangeFilter === "thisWeek") {
+        // Start of current week (Monday)
+        const startOfWeek = new Date(now);
+        const day = startOfWeek.getDay();
+        const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
+        startOfWeek.setDate(diff);
+        startOfWeek.setHours(0, 0, 0, 0);
+        matchesDate = expenseDate >= startOfWeek;
+      } else if (dateRangeFilter === "thisMonth") {
+        matchesDate =
+          expenseDate.getMonth() === now.getMonth() &&
+          expenseDate.getFullYear() === now.getFullYear();
+      } else if (dateRangeFilter === "last30") {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(now.getDate() - 30);
+        matchesDate = expenseDate >= thirtyDaysAgo;
+      } else if (dateRangeFilter === "thisYear") {
+        matchesDate = expenseDate.getFullYear() === now.getFullYear();
+      }
+    }
+
+    return matchesSearch && matchesCategory && matchesDate;
   });
 
   const sortedExpenses = [...filteredexpenses];
@@ -1014,9 +1223,6 @@ function App() {
           className={styles.sidebarBrand}
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         >
-          <span className={styles.sidebarLogo} aria-hidden="true">
-            ↗
-          </span>
           <span>
             Expense<span>Flow</span>
           </span>
@@ -1025,37 +1231,22 @@ function App() {
         <p className={styles.sidebarLabel}>WORKSPACE</p>
 
         <nav className={styles.sideNav} aria-label="Main navigation">
-          <a
-            className={`${styles.navLink} ${styles.navActive}`}
-            href="#overview"
-          >
-            <span>▦</span> Overview
-          </a>
-
-          <a className={styles.navLink} href="#analytics">
-            <span>◔</span> Analytics
-          </a>
-
-          <a className={styles.navLink} href="#transactions">
-            <span>⇄</span> Transactions
-          </a>
-
-          <a className={styles.navLink} href="#add-expense">
-            <span>＋</span> Add expense
-          </a>
-
-          <a className={styles.navLink} href="#income">
-            <span>₹</span> Income
-          </a>
+          {NAV_ITEMS.map((item) => (
+            <a
+              key={item.id}
+              href={`#${item.id}`}
+              className={`${styles.navLink} ${
+                activeSection === item.id ? styles.navActive : ""
+              }`}
+              aria-current={activeSection === item.id ? "location" : undefined}
+              onClick={() => handleNavClick(item.id)}
+            >
+              <span>{item.icon}</span> {item.label}
+            </a>
+          ))}
         </nav>
 
         <div className={styles.sidebarBottom}>
-          <div className={styles.sidebarHelp}>
-            <span className={styles.helpIcon}>✦</span>
-            <strong>Stay on top of it</strong>
-            <p>Small steps today make stronger money habits tomorrow.</p>
-          </div>
-
           <button
             type="button"
             className={styles.sideProfile}
@@ -1064,18 +1255,30 @@ function App() {
               setShowProfile(true);
             }}
           >
-            <span className={styles.sideAvatar}>
-              {(user.name || "EF")
-                .trim()
-                .split(/\s+/)
-                .slice(0, 2)
-                .map((x) => x[0])
-                .join("")
-                .toUpperCase()}
-            </span>
+            {user?.profile_picture ? (
+              <img
+                src={
+                  user.profile_picture.startsWith("http")
+                    ? user.profile_picture
+                    : `${API_URL}${user.profile_picture}`
+                }
+                alt={`${user.name || "User"} profile`}
+                className={styles.sidebarProfileImg}
+              />
+            ) : (
+              <span className={styles.sideAvatar}>
+                {(user?.name || "EF")
+                  .trim()
+                  .split(/\s+/)
+                  .slice(0, 2)
+                  .map((x) => x[0])
+                  .join("")
+                  .toUpperCase()}
+              </span>
+            )}
 
             <span className={styles.sideUser}>
-              <strong>{user.name || "My account"}</strong>
+              <strong>{user?.name || "My account"}</strong>
               <small>Personal account</small>
             </span>
 
@@ -1100,11 +1303,8 @@ function App() {
         <main className={styles.main}>
           <section id="overview" className={styles.dashboardHeading}>
             <div>
-              <p className={styles.dashboardEyebrow}>YOUR FINANCIAL SPACE</p>
-
               <h1 className={styles.dashboardTitle}>
-                Good to see you, {greetingName}{" "}
-                <span aria-hidden="true">✦</span>
+                Good to see you, {greetingName} {"!"}
               </h1>
 
               <p className={styles.dashboardSubtitle}>
@@ -1120,7 +1320,11 @@ function App() {
               <span aria-hidden="true">⇩</span> Export report
             </button>
           </section>
-
+          <BudgetCard totalSpent={monthlySpent} />
+          <section
+            className={styles.statGrid}
+            aria-label="Expense summary"
+          ></section>
           <section className={styles.statGrid} aria-label="Expense summary">
             <article className={`${styles.statCard} ${styles.statPrimary}`}>
               <div className={styles.statTop}>
@@ -1130,19 +1334,14 @@ function App() {
 
               <strong>{formattedTotal}</strong>
               <small>All recorded spending</small>
-
-              <div className={styles.statSpark} aria-hidden="true">
-                <i />
-                <i />
-                <i />
-                <i />
-                <i />
-                <i />
-                <i />
-                <i />
-                <i />
-                <i />
-              </div>
+              <span
+                className={styles.statFoot}
+                style={{ color: spendingDiff <= 0 ? "#20C58A" : "#EF4444" }}
+              >
+                {lastMonthSpent === 0
+                  ? `${formattedMonthlySpent} spent this month`
+                  : `${spendingPercentChange}% ${spendingDiff <= 0 ? "less" : "more"} than last month`}
+              </span>
             </article>
 
             <article className={styles.statCard}>
@@ -1171,8 +1370,8 @@ function App() {
 
             <article className={styles.statCard}>
               <div className={styles.statTop}>
-                <span>Largest expense</span>
-                <span className={styles.statIcon}>↗</span>
+                <span>Largest expensE</span>
+                <span className={styles.statIcon}>₹</span>
               </div>
 
               <strong>
@@ -1200,21 +1399,30 @@ function App() {
                   <p className={styles.panelEyebrow}>SPENDING OVERVIEW</p>
                   <h2>Where your money goes</h2>
                 </div>
-
-                <span className={styles.panelBadge}>By category</span>
+                <span className={styles.panelBadge}>
+                  {dateRangeFilter === "all"
+                    ? "All-time breakdown"
+                    : `Filtered (${dateRangeFilter})`}
+                </span>
               </div>
 
-              <Expensechart expenses={expenses} />
+              <Suspense
+                fallback={
+                  <div style={{ minHeight: 280 }} aria-busy="true">
+                    Loading chart…
+                  </div>
+                }
+              >
+                <Expensechart expenses={filteredexpenses} />
+              </Suspense>
             </div>
 
+            {/* Right Column: Add Transaction & Category Manager */}
             <div className={styles.panel}>
               <div className={styles.panelHeading}>
                 <div>
-                  <p className={styles.panelEyebrow}>QUICK ACTION</p>
                   <h2>Add a transaction</h2>
                 </div>
-
-                <span className={styles.quickPlus}>＋</span>
               </div>
 
               <div id="add-expense">
@@ -1223,38 +1431,8 @@ function App() {
                   setExpenses={setExpenses}
                 />
               </div>
-
-              <form
-                onSubmit={handleAddCategory}
-                className={styles.categoryForm}
-              >
-                <h3>Manage categories</h3>
-
-                <p className={styles.categoryDescription}>
-                  Create categories that fit your spending.
-                </p>
-
-                <div className={styles.categoryFormRow}>
-                  <input
-                    id="new-category-name"
-                    name="categoryName"
-                    type="text"
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
-                    placeholder="New category name"
-                    maxLength={50}
-                  />
-
-                  <button type="submit">Add</button>
-                </div>
-
-                {categoriesError && (
-                  <p className={styles.categoryError}>{categoriesError}</p>
-                )}
-              </form>
             </div>
           </section>
-
           <section id="transactions" className={styles.transactionsSection}>
             <div className={styles.sectionHeading}>
               <div>
@@ -1313,6 +1491,21 @@ function App() {
                   );
                 })}
               </select>
+              <select
+                id="expense-date-filter"
+                name="expenseDateFilter"
+                className={styles.sort}
+                value={dateRangeFilter}
+                onChange={(e) => setDateRangeFilter(e.target.value)}
+                aria-label="Filter expenses by date range"
+              >
+                <option value="all">All time</option>
+                <option value="today">Today</option>
+                <option value="thisWeek">This week</option>
+                <option value="thisMonth">This month</option>
+                <option value="last30">Last 30 days</option>
+                <option value="thisYear">This year</option>
+              </select>
             </div>
 
             <Expenselist
@@ -1328,6 +1521,8 @@ function App() {
               setEditedAmount={setEditedAmount}
               editedCategory={editedCategory}
               setEditedCategory={setEditedCategory}
+              editedDate={editedDate}
+              setEditedDate={setEditedDate}
               expensesLoading={expensesLoading}
               expensesError={expensesError}
               onCancelEdit={() => setEditingId(null)}
@@ -1363,40 +1558,37 @@ function App() {
             </div>
 
             <div className={styles.analyticsGrid}>
-              <div>
-                <div className={styles.sectionHeading}>
+              <div className={styles.panel}>
+                <div className={styles.panelHeading}>
                   <div>
                     <p className={styles.panelEyebrow}>NEW ENTRY</p>
                     <h2>Add income</h2>
-                    <p>Record money you've received.</p>
                   </div>
                 </div>
+                <IncomeForm
+                  categories={incomeCategories}
+                  setIncome={setIncome}
+                />
+              </div>
 
-                <div className={styles.incomeFormWrapper}>
-                  <IncomeForm
-                    categories={incomeCategories}
-                    setIncome={setIncome}
-                  />
-                </div>
-                <div className={styles.incomeFormWrapper}>
-                  <IncomeList
-                    income={income}
-                    categories={incomeCategories}
-                    deleteIncome={deleteIncome}
-                    editingId={incomeEditingId}
-                    startEditing={startIncomeEditing}
-                    saveIncome={saveIncome}
-                    editedName={incomeEditedName}
-                    setEditedName={setIncomeEditedName}
-                    editedAmount={incomeEditedAmount}
-                    setEditedAmount={setIncomeEditedAmount}
-                    editedCategory={incomeEditedCategory}
-                    setEditedCategory={setIncomeEditedCategory}
-                    incomeLoading={incomeLoading}
-                    incomeError={incomeError}
-                    onCancelEdit={() => setIncomeEditingId(null)}
-                  />
-                </div>
+              <div>
+                <IncomeList
+                  income={income}
+                  categories={incomeCategories}
+                  deleteIncome={deleteIncome}
+                  editingId={incomeEditingId}
+                  startEditing={startIncomeEditing}
+                  saveIncome={saveIncome}
+                  editedName={incomeEditedName}
+                  setEditedName={setIncomeEditedName}
+                  editedAmount={incomeEditedAmount}
+                  setEditedAmount={setIncomeEditedAmount}
+                  editedCategory={incomeEditedCategory}
+                  setEditedCategory={setIncomeEditedCategory}
+                  incomeLoading={incomeLoading}
+                  incomeError={incomeError}
+                  onCancelEdit={() => setIncomeEditingId(null)}
+                />
               </div>
             </div>
           </section>

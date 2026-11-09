@@ -1,6 +1,5 @@
-
-import React, { useState } from "react";
-import styles from "./IncomeForm.module.css";
+import { useState } from "react";
+import styles from "./Incomeform.module.css";
 import { apiRequest } from "../../api";
 import Toast from "../TOAST/Toast";
 
@@ -8,6 +7,7 @@ function IncomeForm({ categories = [], setIncome }) {
     const [name, setName] = useState("");
     const [amount, setAmount] = useState("");
     const [category, setCategory] = useState("");
+    const [customCategory, setCustomCategory] = useState("");
     const [loading, setLoading] = useState(false);
 
     const [toast, setToast] = useState({
@@ -28,7 +28,9 @@ function IncomeForm({ categories = [], setIncome }) {
 
         if (loading) return;
 
-        if (!name.trim() || !amount || !category) {
+        const selectedCategory = category === "Other" ? customCategory.trim() : category;
+
+        if (!name.trim() || !amount || !selectedCategory) {
             showToast("Please complete all required fields.", "error");
             return;
         }
@@ -49,7 +51,7 @@ function IncomeForm({ categories = [], setIncome }) {
                 body: JSON.stringify({
                     name: name.trim(),
                     amount: Number(amount),
-                    category,
+                    category: selectedCategory,
                 }),
             });
 
@@ -61,6 +63,7 @@ function IncomeForm({ categories = [], setIncome }) {
             setName("");
             setAmount("");
             setCategory("");
+            setCustomCategory("");
 
             showToast("Income added successfully.");
         } catch (error) {
@@ -154,8 +157,29 @@ function IncomeForm({ categories = [], setIncome }) {
                                 </option>
                             );
                         })}
+                        <option value="Other">Other (Custom source)</option>
                     </select>
                 </div>
+
+                {category === "Other" && (
+                    <div className={styles.field}>
+                        <label className={styles.fieldLabel} htmlFor="income-custom-category">
+                            Custom category name
+                        </label>
+
+                        <input
+                            id="income-custom-category"
+                            className={styles.input}
+                            type="text"
+                            placeholder="e.g. Dividends, Gifts"
+                            value={customCategory}
+                            onChange={(e) => setCustomCategory(e.target.value)}
+                            required
+                            disabled={loading}
+                            maxLength={50}
+                        />
+                    </div>
+                )}
             </div>
 
             <button

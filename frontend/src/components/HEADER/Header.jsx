@@ -10,27 +10,11 @@ function Header({ darkMode, onToggleTheme, onOpenProfile, compact = false }) {
                     onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
                     aria-label="ExpenseFlow home"
                 >
-                    <span className={styles.brandIcon} aria-hidden="true">
-                        <svg
-                            width="23"
-                            height="23"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        >
-                            <rect x="3" y="5" width="18" height="15" rx="3" />
-                            <path d="M16 14h5M3 9h18M7 3v4" />
-                        </svg>
-                    </span>
-
+                   
                     <span className={styles.brandText}>
                         <span className={styles.brandName}>
                             Expense<span className={styles.brandAccent}>Flow</span>
                         </span>
-                        <span className={styles.tagline}>PERSONAL FINANCE</span>
                     </span>
                 </button>
 

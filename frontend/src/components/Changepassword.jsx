@@ -1,6 +1,6 @@
-
 import { useState } from "react";
 import { apiRequest } from "../api";
+import styles from "../App.module.css";
 
 function ChangePassword({ onBack, onPasswordChanged }) {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -12,7 +12,6 @@ function ChangePassword({ onBack, onPasswordChanged }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (loading) return;
 
     setMessage("");
@@ -28,28 +27,18 @@ function ChangePassword({ onBack, onPasswordChanged }) {
       return;
     }
 
-    if (new TextEncoder().encode(newPassword).length > 72) {
-      setError("New password must not exceed 72 UTF-8 bytes.");
-      return;
-    }
-
     setLoading(true);
 
     try {
       const data = await apiRequest("/change-password", {
         method: "POST",
-        body: JSON.stringify({
-          currentPassword,
-          newPassword,
-        }),
+        body: JSON.stringify({ currentPassword, newPassword }),
       });
 
       setMessage(data.message || "Password changed successfully.");
-
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-
       onPasswordChanged();
     } catch (err) {
       setError(err.message || "Unable to change password. Please try again.");
@@ -59,14 +48,21 @@ function ChangePassword({ onBack, onPasswordChanged }) {
   };
 
   return (
-    <main>
-      <h2>Change Password</h2>
+    <section className={styles.profileCard} style={{ maxWidth: "600px", margin: "0 auto" }}>
+      <div className={styles.profileCardHeading}>
+        <p className={styles.profileEyebrow}>SECURITY</p>
+        <h2>Change password</h2>
+        <p className={styles.profileCardDescription}>
+          Ensure your account is using a long, secure password.
+        </p>
+      </div>
 
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="currentPassword">Current password</label>
+      <form onSubmit={handleSubmit} style={{ marginTop: "20px" }}>
+        <div className={styles.profileField}>
+          <label className={styles.profileLabel} htmlFor="currentPassword">Current password</label>
           <input
             id="currentPassword"
+            className={styles.profileInput}
             type="password"
             autoComplete="current-password"
             value={currentPassword}
@@ -76,10 +72,11 @@ function ChangePassword({ onBack, onPasswordChanged }) {
           />
         </div>
 
-        <div>
-          <label htmlFor="newPassword">New password</label>
+        <div className={styles.profileField}>
+          <label className={styles.profileLabel} htmlFor="newPassword">New password</label>
           <input
             id="newPassword"
+            className={styles.profileInput}
             type="password"
             autoComplete="new-password"
             value={newPassword}
@@ -89,10 +86,11 @@ function ChangePassword({ onBack, onPasswordChanged }) {
           />
         </div>
 
-        <div>
-          <label htmlFor="confirmPassword">Confirm new password</label>
+        <div className={styles.profileField}>
+          <label className={styles.profileLabel} htmlFor="confirmPassword">Confirm new password</label>
           <input
             id="confirmPassword"
+            className={styles.profileInput}
             type="password"
             autoComplete="new-password"
             value={confirmPassword}
@@ -102,18 +100,38 @@ function ChangePassword({ onBack, onPasswordChanged }) {
           />
         </div>
 
-        {error && <p role="alert">{error}</p>}
-        {message && <p role="status">{message}</p>}
+        {error && (
+          <div className={styles.loginError} role="alert" style={{ marginBottom: "16px" }}>
+            <span>!</span> {error}
+          </div>
+        )}
 
-        <button type="submit" disabled={loading}>
-          {loading ? "Changing password..." : "Change password"}
-        </button>
+        {message && (
+          <div className={styles.authSuccess} role="status" style={{ marginBottom: "16px", padding: "12px", borderRadius: "9px" }}>
+            {message}
+          </div>
+        )}
+
+        <div className={styles.profileButtonRow}>
+          <button
+            type="submit"
+            className={`${styles.profileButton} ${styles.profileButtonPrimary}`}
+            disabled={loading}
+          >
+            {loading ? "Changing password..." : "Update password"}
+          </button>
+
+          <button
+            type="button"
+            className={styles.profileButton}
+            onClick={onBack}
+            disabled={loading}
+          >
+            Cancel
+          </button>
+        </div>
       </form>
-
-      <button type="button" onClick={onBack} disabled={loading}>
-        Back to Profile
-      </button>
-    </main>
+    </section>
   );
 }
 

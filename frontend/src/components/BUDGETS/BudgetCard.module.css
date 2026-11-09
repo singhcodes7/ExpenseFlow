@@ -1,0 +1,95 @@
+.card {
+  background: #111827; /* Matches your stat cards exactly */
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  color: #f8fafc;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.progressBar {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #818cf8); /* Modern indigo progress fill */
+  transition: width 0.3s ease;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+.title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+}
+.subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted, #94a3b8);
+  margin: 0;
+}
+.editBtn, .cancelBtn, .saveBtn {
+  background: rgba(87, 152, 245, 0.15);
+  color: #5798F5;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cancelBtn {
+  background: rgba(239, 68, 68, 0.15);
+  color: #EF4444;
+}
+.stats {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.label {
+  font-size: 12px;
+  color: var(--text-muted, #94a3b8);
+}
+.amount {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 2px 0 0 0;
+}
+.progressContainer {
+  background: rgba(255, 255, 255, 0.06);
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.progressBar {
+  height: 100%;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+.footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+.percentage {
+  color: var(--text-muted, #94a3b8);
+}
+.form {
+  display: flex;
+  gap: 8px;
+}
+.input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.15));
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: #fff;
+  font-size: 14px;
+}
+.saveBtn {
+  background: #20C58A;
+  color: #fff;
+}

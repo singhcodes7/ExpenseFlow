@@ -1,4 +1,3 @@
-import React from "react";
 import styles from "./Expenselist.module.css";
 import { formatINR } from "../../utils/currency";
 
@@ -21,6 +20,8 @@ function Expenselist({
   setEditedAmount,
   editedCategory,
   setEditedCategory,
+  editedDate,
+  setEditedDate,
   expensesLoading,
   expensesError,
   onCancelEdit,
@@ -29,8 +30,6 @@ function Expenselist({
     <div className={styles.card}>
       <div className={styles.cardHeader}>
         <div>
-          <p className={styles.eyebrow}>TRANSACTION HISTORY</p>
-
           <h2 className={styles.title}>Recent expenses</h2>
 
           <p className={styles.subtitle}>
@@ -74,6 +73,7 @@ function Expenselist({
             <thead>
               <tr>
                 <th>DESCRIPTION</th>
+                <th>DATE</th>
                 <th>AMOUNT</th>
                 <th>CATEGORY</th>
                 <th className={styles.actionHeading}>ACTIONS</th>
@@ -83,6 +83,14 @@ function Expenselist({
             <tbody>
               {expenses.map((expense) => {
                 const isEditing = editingId === expense.id;
+
+                const formattedDate = expense.created_at
+                  ? new Date(expense.created_at).toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })
+                  : "-";
 
                 return (
                   <tr key={expense.id}>
@@ -100,10 +108,86 @@ function Expenselist({
                             {expense.name?.charAt(0)?.toUpperCase() || "E"}
                           </div>
 
-                          <span className={styles.expenseName}>
-                            {expense.name}
-                          </span>
+                          <div>
+                            <span className={styles.expenseName}>
+                              {expense.name}
+                            </span>
+                            {expense.is_capital_expense && (
+                              <span
+                                title="Excluded from monthly operating budget"
+                                style={{
+                                  display: "inline-block",
+                                  fontSize: "10px",
+                                  fontWeight: 600,
+                                  padding: "1px 6px",
+                                  borderRadius: "4px",
+                                  background: "rgba(139, 92, 246, 0.15)",
+                                  color: "#8B5CF6",
+                                  border: "1px solid rgba(139, 92, 246, 0.3)",
+                                  marginLeft: "8px",
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.025em",
+                                }}
+                              >
+                                Capital Asset
+                              </span>
+                            )}
+                            {expense.is_recurring && (
+                              <span
+                                style={{
+                                  display: "inline-block",
+                                  fontSize: "10px",
+                                  fontWeight: 600,
+                                  padding: "1px 6px",
+                                  borderRadius: "4px",
+                                  background: "rgba(87, 152, 245, 0.15)",
+                                  color: "#5798F5",
+                                  marginLeft: "8px",
+                                  textTransform: "capitalize",
+                                }}
+                              >
+                                🔄 {expense.recurrence_interval || "recurring"}
+                              </span>
+                            )}
+                            {expense.payment_mode && (
+                              <span
+                                style={{
+                                  display: "inline-block",
+                                  fontSize: "10px",
+                                  fontWeight: 600,
+                                  padding: "1px 6px",
+                                  borderRadius: "4px",
+                                  background: "rgba(32, 197, 138, 0.12)",
+                                  color: "#20C58A",
+                                  marginLeft: "8px",
+                                }}
+                              >
+                                💳 {expense.payment_mode}
+                              </span>
+                            )}
+                          </div>
                         </div>
+                      )}
+                    </td>
+
+                    <td className={styles.dateCell}>
+                      {isEditing ? (
+                        <input
+                          className={styles.editInput}
+                          type="date"
+                          value={editedDate}
+                          onChange={(e) => setEditedDate(e.target.value)}
+                          aria-label="Expense date"
+                        />
+                      ) : (
+                        <span
+                          style={{
+                            color: "var(--text-muted)",
+                            fontSize: "0.875rem",
+                          }}
+                        >
+                          {formattedDate}
+                        </span>
                       )}
                     </td>
 

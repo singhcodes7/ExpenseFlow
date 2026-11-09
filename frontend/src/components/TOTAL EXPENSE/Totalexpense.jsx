@@ -1,4 +1,3 @@
-import React from "react";
 import styles from "./Totalexpense.module.css";
 import { formatINR } from "../../utils/currency";
 

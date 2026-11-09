@@ -1,4 +1,3 @@
-import React from "react";
 import styles from "../EXPENSE LIST/Expenselist.module.css";
 import { formatINR } from "../../utils/currency";
 
@@ -23,7 +22,6 @@ function IncomeList({
     <div className={styles.card}>
       <div className={styles.cardHeader}>
         <div>
-          <p className={styles.eyebrow}>INCOME HISTORY</p>
           <h2 className={styles.title}>Recent income</h2>
           <p className={styles.subtitle}>Manage and track all your earnings.</p>
         </div>
@@ -57,6 +55,7 @@ function IncomeList({
             <thead>
               <tr>
                 <th>DESCRIPTION</th>
+                <th>DATE</th>
                 <th>AMOUNT</th>
                 <th>CATEGORY</th>
                 <th className={styles.actionHeading}>ACTIONS</th>
@@ -66,6 +65,15 @@ function IncomeList({
             <tbody>
               {income.map((item) => {
                 const isEditing = editingId === item.id;
+                
+                // Properly scoped inside map for each item
+                const formattedDate = item.created_at
+                  ? new Date(item.created_at).toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })
+                  : "-";
 
                 return (
                   <tr key={item.id}>
@@ -87,6 +95,12 @@ function IncomeList({
                           </span>
                         </div>
                       )}
+                    </td>
+
+                    <td className={styles.dateCell}>
+                      <span style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>
+                        {formattedDate}
+                      </span>
                     </td>
 
                     <td className={styles.amountCell}>

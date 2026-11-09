@@ -1,0 +1,79 @@
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(5, 10, 20, 0.75);
+  backdrop-filter: blur(6px);
+}
+
+.modalContent {
+  width: 100%;
+  max-width: 480px;
+  padding: 28px;
+  background: #0f172a;
+  border: 1px solid #263449;
+  border-radius: 20px;
+  color: #f1f5f9;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+}
+
+.modalContent h2 {
+  margin: 0 0 6px;
+  font-size: 1.25rem;
+}
+
+.modalContent p {
+  margin: 0 0 20px;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.cropContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #020617;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+  overflow: hidden;
+  max-height: 60vh;
+}
+
+.buttonRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.cancelBtn, .saveBtn {
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 650;
+  cursor: pointer;
+  border: 1px solid #263449;
+}
+
+.cancelBtn {
+  background: transparent;
+  color: #94a3b8;
+}
+
+.cancelBtn:hover {
+  color: #f1f5f9;
+  border-color: #475569;
+}
+
+.saveBtn {
+  background: #10b981;
+  color: #022c22;
+  border-color: #10b981;
+}
+
+.saveBtn:hover {
+  background: #34d399;
+}

@@ -22,3 +22,5 @@ Thumbs.db
 
 backend/.git-backup/
 frontend/vite-project/
+
+.claude

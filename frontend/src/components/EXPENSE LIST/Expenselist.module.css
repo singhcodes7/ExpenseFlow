@@ -63,7 +63,7 @@
 
 .card table {
     width: 100%;
-    min-width: 620px;
+    min-width: 700px;
     border-collapse: collapse;
     text-align: left;
 }
@@ -397,4 +397,20 @@
     .loadingSpinner {
         animation-duration: 1.5s;
     }
+}
+
+.capitalBadge {
+  display: inline-flex;
+  align-items: center;
+  background-color: rgba(139, 92, 246, 0.15); /* Elegant purple tint */
+  color: #8B5CF6;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  margin-left: 8px;
+  vertical-align: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
 }

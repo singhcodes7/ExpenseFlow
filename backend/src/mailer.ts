@@ -3,7 +3,8 @@ import nodemailer from "nodemailer";
 
 const smtpUser = process.env.SMTP_USER;
 const smtpPass = process.env.SMTP_PASS;
-
+const FRONTEND_URL = (process.env.FRONTEND_URL ?? "http://localhost:5173").replace(/\/$/, "");
+const API_URL = (process.env.API_URL ?? "http://localhost:5000").replace(/\/$/, "");
 if (!smtpUser || !smtpPass) {
     throw new Error("SMTP_USER or SMTP_PASS is missing");
 }
@@ -21,10 +22,10 @@ export async function sendVerificationEmail(
     verificationToken: string
 ) {
     const verificationUrl =
-        `http://localhost:5000/verify-email?token=${encodeURIComponent(verificationToken)}`;
+        `${API_URL}/verify-email?token=${encodeURIComponent(verificationToken)}`;
 
     await transporter.sendMail({
-        from: `"My Auth App" <${smtpUser}>`,
+        from: `"EXPENSEFLOW" <${smtpUser}>`,
         to: email,
         subject: "Verify your email address",
         text: `Verify your email: ${verificationUrl}`,
@@ -81,8 +82,7 @@ export async function sendPasswordResetEmail(
     resetToken: string
 ) {
     const resetUrl =
-        `http://localhost:5173/reset-password?token=${encodeURIComponent(resetToken)}`;
-
++         `${FRONTEND_URL}/reset-password?token=${encodeURIComponent(resetToken)}`;
     await transporter.sendMail({
         from: process.env.SMTP_USER,
         to: email,
