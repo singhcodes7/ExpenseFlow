@@ -25,7 +25,50 @@ function Expenselist({
   expensesLoading,
   expensesError,
   onCancelEdit,
+  showToast,
 }) {
+  const exportExpensesCSV = () => {
+    if (expenses.length === 0) {
+      if (typeof showToast === "function") {
+        showToast("No expenses to export.", "error");
+      }
+      return;
+    }
+
+    const headers = ["Name", "Amount", "Category", "Date"];
+
+    const rows = expenses.map((expense) => [
+      expense.name ?? "",
+      expense.amount ?? 0,
+      expense.category ?? "General",
+      expense.created_at ? new Date(expense.created_at).toISOString().slice(0, 10) : "",
+    ]);
+
+    const csv = [headers, ...rows]
+      .map((row) =>
+        row
+          .map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`)
+          .join(","),
+      )
+      .join("\r\n");
+
+    const blob = new Blob(["\uFEFF" + csv], {
+      type: "text/csv;charset=utf-8;",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `expenseflow-expenses-${new Date()
+      .toISOString()
+      .slice(0, 10)}.csv`;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
   return (
     <div className={styles.card}>
       <div className={styles.cardHeader}>
@@ -36,10 +79,31 @@ function Expenselist({
             Manage and track all your transactions.
           </p>
         </div>
+        
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <button
+            type="button"
+            onClick={exportExpensesCSV}
+            className={styles.countBadge}
+            style={{
+              cursor: "pointer",
+              border: "1px solid var(--border-color, rgba(255, 255, 255, 0.1))",
+              background: "var(--bg-secondary, rgba(255, 255, 255, 0.05))",
+              color: "inherit",
+              display: "flex",
+              alignItem: "center",
+              gap: "6px",
+              font: "inherit",
+            }}
+            title="Export transactions to CSV"
+          >
+            📥 Export CSV
+          </button>
 
-        <div className={styles.countBadge}>
-          {expenses.length}{" "}
-          {expenses.length === 1 ? "transaction" : "transactions"}
+          <div className={styles.countBadge}>
+            {expenses.length}{" "}
+            {expenses.length === 1 ? "transaction" : "transactions"}
+          </div>
         </div>
       </div>
 

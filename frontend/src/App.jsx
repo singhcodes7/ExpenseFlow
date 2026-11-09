@@ -649,12 +649,15 @@ function App() {
       return;
     }
 
-    const headers = ["Name", "Amount", "Category"];
+    // 1. Added "Date" to headers
+    const headers = ["Name", "Amount", "Category", "Date"];
 
     const rows = expenses.map((expense) => [
       expense.name,
       expense.amount,
       expense.category,
+      // 2. Added date formatting (handles ISO strings or timestamps safely)
+      expense.date ? new Date(expense.date).toISOString().slice(0, 10) : "",
     ]);
 
     const csv = [headers, ...rows]
@@ -1274,14 +1277,6 @@ function App() {
                 Here's what's happening with your money.
               </p>
             </div>
-
-            <button
-              type="button"
-              className={styles.exportButton}
-              onClick={exportExpensesCSV}
-            >
-              <span aria-hidden="true">⇩</span> Export report
-            </button>
           </section>
           <BudgetCard totalSpent={monthlySpent} />
           <section
