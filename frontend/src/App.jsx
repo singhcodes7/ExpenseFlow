@@ -643,49 +643,6 @@ function App() {
     );
   }
 
-  const exportExpensesCSV = () => {
-    if (expenses.length === 0) {
-      showToast("No expenses to export.", "error");
-      return;
-    }
-
-    // 1. Added "Date" to headers
-    const headers = ["Name", "Amount", "Category", "Date"];
-
-    const rows = expenses.map((expense) => [
-      expense.name,
-      expense.amount,
-      expense.category,
-      // 2. Added date formatting (handles ISO strings or timestamps safely)
-      expense.date ? new Date(expense.date).toISOString().slice(0, 10) : "",
-    ]);
-
-    const csv = [headers, ...rows]
-      .map((row) =>
-        row
-          .map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`)
-          .join(","),
-      )
-      .join("\r\n");
-
-    const blob = new Blob(["\uFEFF" + csv], {
-      type: "text/csv;charset=utf-8;",
-    });
-
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    link.href = url;
-    link.download = `expenseflow-expenses-${new Date()
-      .toISOString()
-      .slice(0, 10)}.csv`;
-
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-  };
-
   if (showProfile) {
     if (showChangePassword) {
       return (
