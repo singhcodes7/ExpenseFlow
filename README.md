@@ -2,9 +2,6 @@
 
 A full-stack personal finance tracker for logging expenses and income, organising them with custom categories, and seeing where your money goes.
 
-<!-- Add screenshots here, e.g. ![Dashboard](docs/dashboard.png) -->
-<!-- Live demo: https://your-app.vercel.app -->
-
 ## Features
 
 - **Secure accounts:** email-verified registration, one-time email codes at login, and password reset by email
