@@ -1,7 +1,6 @@
 # ExpenseFlow
 
 ![CI Status](https://github.com/singhcodes7/ExpenseFlow/actions/workflows/ci.yml/badge.svg)
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
 A full-stack personal finance tracker for logging expenses and income, organising them with custom categories, and seeing where your money goes.
 
@@ -31,6 +30,12 @@ A full-stack personal finance tracker for logging expenses and income, organisin
 
 Below is a complete visual walkthrough of the ExpenseFlow application interface across its core modules:
 
+### 📊 Dashboard & Analytics
+* **Dashboard (Dark Mode):** Primary financial overview featuring the slate fintech theme.  
+  ![Dashboard Dark Mode](assets/Dashboarddark.png)
+* **Dashboard (Light Mode):** Clean, high-contrast daytime UI theme.  
+  ![Dashboard Light Mode](assets/Dashboardlightmode.png) 
+
 ### 🔐 Authentication & Access
 * **Login Portal:** Secure user sign-in interface.  
   ![Login Portal](assets/LoginPage.png)
@@ -39,13 +44,9 @@ Below is a complete visual walkthrough of the ExpenseFlow application interface 
 * **Password Recovery:** Account recovery workflow.  
   ![Password Recovery](assets/ForgotpasswordPage.png)
 
-### 📊 Dashboard & Analytics
-* **Dashboard (Dark Mode):** Primary financial overview featuring the slate fintech theme.  
-  ![Dashboard Dark Mode](assets/Dashboarddark.png)
-* **Dashboard (Light Mode):** Clean, high-contrast daytime UI theme.  
-  ![Dashboard Light Mode](assets/Dashboardlightmode.png)
-* **Income Overview:** Detailed breakdown of incoming capital assets.  
-  ![Income Overview](assets/IncomeOverview.png)
+### 💵 Income and Spending
+* **Income Overview:** Detailed breakdown of incoming capital assets. 
+![Income Overview](assets/IncomeOverview.png)
 * **Spending Overview:** Analytics and trends for monthly expenses.  
   ![Spending Overview](assets/SpendingOverview.png)
 
@@ -55,7 +56,7 @@ Below is a complete visual walkthrough of the ExpenseFlow application interface 
 * **Advanced Filters:** Filter expenses and income by date ranges and categories.  
   ![Advanced Filters](assets/ExpensesFilter.png)
 * **Add Income Modal / Form:** Streamlined entry for new financial inflows.  
-  ![Add Income](assets/ux%20assets/AddIncome.png)
+  ![Add Income](assets/AddIncome.png)
 
 ### 👤 Profile & Settings
 * **Profile Management (Dark Mode):** Inline name editing and avatar preferences.  
@@ -163,7 +164,3 @@ Profile pictures are stored on Cloudinary. Create a free account and set `CLOUDI
 - Refresh tokens are rotated on use and can be revoked.
 - State-changing requests must come from the configured frontend origin.
 - Login, registration and password-reset endpoints are rate limited.
-
-## License
-
-Add a license of your choice (for example MIT) as a `LICENSE` file.
