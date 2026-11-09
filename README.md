@@ -1,5 +1,8 @@
 # ExpenseFlow
 
+![CI Status](https://github.com/singhcodes7/ExpenseFlow/actions/workflows/ci.yml/badge.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+
 A full-stack personal finance tracker for logging expenses and income, organising them with custom categories, and seeing where your money goes.
 
 ## Features
@@ -23,15 +26,42 @@ A full-stack personal finance tracker for logging expenses and income, organisin
 | Testing  | Vitest, Supertest |
 | Storage  | Cloudinary (profile pictures) |
 
-## Project structure
 
-```
-ExpenseFlow/
-├── backend/    Express + TypeScript API
-│   ├── src/
-│   └── db/schema.sql
-└── frontend/   React + Vite app
-```
+## 📸 App Preview & Screenshots
+
+Below is a complete visual walkthrough of the ExpenseFlow application interface across its core modules:
+
+### 🔐 Authentication & Access
+* **Login Portal:** Secure user sign-in interface.  
+  ![Login Portal](assets/LoginPage.png)
+* **Registration Page:** New account onboarding form.  
+  ![Registration Page](assets/RegistrationPage.png)
+* **Password Recovery:** Account recovery workflow.  
+  ![Password Recovery](assets/ForgotpasswordPage.png)
+
+### 📊 Dashboard & Analytics
+* **Dashboard (Dark Mode):** Primary financial overview featuring the slate fintech theme.  
+  ![Dashboard Dark Mode](assets/Dashboarddark.png)
+* **Dashboard (Light Mode):** Clean, high-contrast daytime UI theme.  
+  ![Dashboard Light Mode](assets/Dashboardlightmode.png)
+* **Income Overview:** Detailed breakdown of incoming capital assets.  
+  ![Income Overview](assets/IncomeOverview.png)
+* **Spending Overview:** Analytics and trends for monthly expenses.  
+  ![Spending Overview](assets/SpendingOverview.png)
+
+### 💳 Transaction Management
+* **Expense List:** Comprehensive log of recorded transactions.  
+  ![Expense List](assets/ExpensesList.png)
+* **Advanced Filters:** Filter expenses and income by date ranges and categories.  
+  ![Advanced Filters](assets/ExpensesFilter.png)
+* **Add Income Modal / Form:** Streamlined entry for new financial inflows.  
+  ![Add Income](assets/ux%20assets/AddIncome.png)
+
+### 👤 Profile & Settings
+* **Profile Management (Dark Mode):** Inline name editing and avatar preferences.  
+  ![Profile Dark Mode](assets/Myprofiledarkmode.png)
+* **Profile Management (Light Mode):** Clean profile settings interface in light mode.  
+  ![Profile Light Mode](assets/Myprofilelightmode.png)
 
 ## Getting started
 
