@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { apiRequest } from "../../api";
 import styles from "./BudgetCard.module.css";
 
@@ -17,7 +17,7 @@ function BudgetCard({ totalSpent = 0 }) {
   const [inputAmount, setInputAmount] = useState("");
   const currentMonth = new Date().toISOString().slice(0, 7);
 
-  const fetchBudget = async () => {
+  const fetchBudget = useCallback(async () => {
     try {
       const data = await apiRequest(`/api/budget?month=${currentMonth}`);
       if (data && data.budget) {
@@ -26,11 +26,11 @@ function BudgetCard({ totalSpent = 0 }) {
     } catch (err) {
       console.error("Failed to load budget", err);
     }
-  };
+  }, [currentMonth]);
 
   useEffect(() => {
     fetchBudget();
-  }, []);
+  }, [fetchBudget]);
 
   const handleSaveBudget = async (e) => {
     e.preventDefault();

@@ -131,7 +131,6 @@ function App() {
 
   const [categories, setCategories] = useState([]);
   const [, setCategoriesLoading] = useState(false);
-  const [newCategory, setNewCategory] = useState("");
   const [, setCategoriesError] = useState("");
 
   const [showChangePassword, setShowChangePassword] = useState(false);
