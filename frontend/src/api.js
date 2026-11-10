@@ -13,13 +13,13 @@ export async function refreshAccessToken() {
             const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                sessionStorage.removeItem("accessToken");
+                localStorage.removeItem("accessToken");
                 throw new Error(
                     data.message || "Your session has expired. Please log in again."
                 );
             }
 
-            sessionStorage.setItem("accessToken", data.accessToken);
+            localStorage.setItem("accessToken", data.accessToken);
             return data.accessToken;
         })().finally(() => {
             refreshPromise = null;
@@ -49,7 +49,7 @@ export async function apiRequest(endpoint, options = {}) {
         });
     };
 
-    let token = sessionStorage.getItem("accessToken");
+    let token = localStorage.getItem("accessToken");
     let response = await makeRequest(token);
 
     if (response.status === 401 && endpoint !== "/refresh") {
@@ -82,7 +82,7 @@ export async function apiUpload(endpoint, formData) {
         });
     };
 
-    let token = sessionStorage.getItem("accessToken");
+    let token = localStorage.getItem("accessToken");
     let response = await makeRequest(token);
 
     if (response.status === 401 && endpoint !== "/refresh") {
