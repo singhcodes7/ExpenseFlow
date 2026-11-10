@@ -22,10 +22,20 @@ app.set("trust proxy", 1);
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-  origin: [
-    'https://expense-flow-tau-livid.vercel.app',
-    'http://localhost:5173'
-  ],
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'https://expense-flow-tau-livid.vercel.app'
+    ];
+    
+    // Allow requests with no origin (like mobile apps or curl) 
+    // or if it's from any vercel.app domain or localhost
+    if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 
