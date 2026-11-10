@@ -1,10 +1,26 @@
 export const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
+
 let refreshPromise = null;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+    failedQueue.forEach(prom => {
+        if (error) {
+            prom.reject(error);
+        } else {
+            prom.resolve(token);
+        }
+    });
+    failedQueue = [];
+};
 
 export async function refreshAccessToken() {
-    // Reuse an ongoing refresh request instead of sending duplicates.
-    if (!refreshPromise) {
-        refreshPromise = (async () => {
+    if (refreshPromise) {
+        return refreshPromise;
+    }
+
+    refreshPromise = (async () => {
+        try {
             const response = await fetch(`${API_URL}/refresh`, {
                 method: "POST",
                 credentials: "include",
@@ -20,11 +36,16 @@ export async function refreshAccessToken() {
             }
 
             localStorage.setItem("accessToken", data.accessToken);
+            processQueue(null, data.accessToken);
             return data.accessToken;
-        })().finally(() => {
+        } catch (error) {
+            processQueue(error, null);
+            localStorage.removeItem("accessToken");
+            throw error;
+        } finally {
             refreshPromise = null;
-        });
-    }
+        }
+    })();
 
     return refreshPromise;
 }
@@ -53,8 +74,24 @@ export async function apiRequest(endpoint, options = {}) {
     let response = await makeRequest(token);
 
     if (response.status === 401 && endpoint !== "/refresh") {
-        token = await refreshAccessToken();
-        response = await makeRequest(token);
+        if (refreshPromise) {
+            // If a refresh is already happening, queue this request to wait for it
+            try {
+                token = await new Promise((resolve, reject) => {
+                    failedQueue.push({ resolve, reject });
+                });
+                response = await makeRequest(token);
+            } catch (err) {
+                throw err;
+            }
+        } else {
+            try {
+                token = await refreshAccessToken();
+                response = await makeRequest(token);
+            } catch (error) {
+                throw error;
+            }
+        }
     }
 
     const data = await response.json().catch(() => ({}));
@@ -86,8 +123,23 @@ export async function apiUpload(endpoint, formData) {
     let response = await makeRequest(token);
 
     if (response.status === 401 && endpoint !== "/refresh") {
-        token = await refreshAccessToken();
-        response = await makeRequest(token);
+        if (refreshPromise) {
+            try {
+                token = await new Promise((resolve, reject) => {
+                    failedQueue.push({ resolve, reject });
+                });
+                response = await makeRequest(token);
+            } catch (err) {
+                throw err;
+            }
+        } else {
+            try {
+                token = await refreshAccessToken();
+                response = await makeRequest(token);
+            } catch (error) {
+                throw error;
+            }
+        }
     }
 
     const data = await response.json().catch(() => ({}));
