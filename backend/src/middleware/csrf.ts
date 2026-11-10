@@ -6,7 +6,7 @@ export const csrfProtection = (
     res: express.Response,
     next: express.NextFunction
 ) => {
-    if (req.path === "/refresh" || req.originalUrl?.includes("/refresh")) {
+    if (req.path.includes("refresh") || req.path === "/health") {
         return next();
     }
 
@@ -15,10 +15,12 @@ export const csrfProtection = (
     if (stateChangingMethods.includes(req.method)) {
         const origin = req.get("Origin");
 
+        // Allow requests with matching origin, vercel domains, localhost, or missing origin (safeguard)
         const isAllowed = 
+            !origin ||
             origin === ALLOWED_ORIGIN || 
-            (origin && origin.endsWith(".vercel.app")) ||
-            (origin && origin.includes("localhost"));
+            origin.endsWith(".vercel.app") ||
+            origin.includes("localhost");
 
         if (!isAllowed) {
             return res.status(403).json({
