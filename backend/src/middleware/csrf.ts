@@ -5,8 +5,8 @@ export const csrfProtection = (
     req: express.Request,
     res: express.Response,
     next: express.NextFunction
-) => {
-    if (req.path.includes("refresh") || req.path === "/health") {
+): void => {
+    if (req.path === "/refresh" || req.originalUrl?.includes("refresh") || req.path === "/health") {
         return next();
     }
 
@@ -15,7 +15,6 @@ export const csrfProtection = (
     if (stateChangingMethods.includes(req.method)) {
         const origin = req.get("Origin");
 
-        // Allow requests with matching origin, vercel domains, localhost, or missing origin (safeguard)
         const isAllowed = 
             !origin ||
             origin === ALLOWED_ORIGIN || 
@@ -23,9 +22,10 @@ export const csrfProtection = (
             origin.includes("localhost");
 
         if (!isAllowed) {
-            return res.status(403).json({
+            res.status(403).json({
                 message: "Untrusted or missing request origin",
             });
+            return;
         }
     }
 
