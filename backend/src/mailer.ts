@@ -1,10 +1,10 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Fallback dummy key prevents tests from crashing when RESEND_API_KEY isn't set in CI/CD
+const resend = new Resend(process.env.RESEND_API_KEY || "re_test_dummy_key");
 const FRONTEND_URL = (process.env.FRONTEND_URL ?? "http://localhost:5173").replace(/\/$/, "");
 const API_URL = (process.env.API_URL ?? "http://localhost:5000").replace(/\/$/, "");
 
-// Resend free tier uses onboarding@resend.dev until you verify your own domain
 const SENDER_EMAIL = process.env.EMAIL_FROM ?? "ExpenseFlow <onboarding@resend.dev>";
 
 export async function sendVerificationEmail(
