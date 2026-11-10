@@ -11,7 +11,12 @@ export const csrfProtection = (
     if (stateChangingMethods.includes(req.method)) {
         const origin = req.get("Origin");
 
-        if (origin !== ALLOWED_ORIGIN) {
+        const isAllowed = 
+            origin === ALLOWED_ORIGIN || 
+            (origin && origin.endsWith(".vercel.app")) ||
+            (origin && origin.includes("localhost"));
+
+        if (!isAllowed) {
             return res.status(403).json({
                 message: "Untrusted or missing request origin",
             });
