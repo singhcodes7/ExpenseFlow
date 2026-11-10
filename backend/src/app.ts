@@ -48,6 +48,9 @@ app.get("/health", (_req, res) => {
     res.status(200).json({ status: "ok", uptime: process.uptime() });
 });
 
+app.use(sessionRouter);
+app.use(registrationRouter);
+
 app.use(csrfProtection);
 
 app.use("/api", budgetRouter);
@@ -55,8 +58,6 @@ app.use(categoriesRouter);
 app.use(expensesRouter);
 app.use(incomeRouter);
 app.use(adminRouter);
-app.use(registrationRouter);
-app.use(sessionRouter);
 app.use(profileRouter);
 app.use(passwordRouter);
 
