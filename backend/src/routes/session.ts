@@ -77,7 +77,6 @@ router.post("/login", loginLimiter, async (req, res) => {
 
 //======================verify login otp===================
 
-
 router.post(
     "/verify-login-otp",
     sensitiveActionLimiter,
@@ -184,12 +183,7 @@ router.post(
 
             await client.query("COMMIT");
 
-            res.cookie("refreshToken", refreshToken, {
-            httpOnly: true,
-            secure: true,      // Required for HTTPS on Render
-            sameSite: "none",  // Required for cross-site requests from Vercel to Render
-            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-            });
+            res.cookie("refreshToken", refreshToken, refreshCookieOptions);
 
             return res.status(200).json({
                 message: "Login successful",
@@ -216,8 +210,7 @@ router.post(
     }
 );
 
-//======================verify login otp================
-
+//======================resend login otp===================
 
 router.post(
     "/resend-login-otp",
@@ -383,10 +376,7 @@ router.post("/refresh", async (req, res) => {
 
         await client.query("COMMIT");
 
-        res.cookie("refreshToken", newRefreshToken, {
-            ...refreshCookieOptions,
-            maxAge: REFRESH_COOKIE_MAX_AGE,
-        });
+        res.cookie("refreshToken", newRefreshToken, refreshCookieOptions);
 
         return res.json({
             accessToken: newAccessToken,
@@ -416,7 +406,6 @@ router.post("/logout", async (req, res) => {
     const refreshToken = req.cookies.refreshToken;
 
     try {
-        // Revoke the refresh token in the database too
         if (typeof refreshToken === "string" && refreshToken) {
             await pool.query(
                 `UPDATE refresh_tokens
