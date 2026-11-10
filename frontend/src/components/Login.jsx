@@ -113,24 +113,6 @@ useEffect(() => {
 
             <section className="login-card">
                 <div className="login-brand">
-                    <div className="login-brand-icon">
-                        <svg
-                            width="28"
-                            height="28"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden="true"
-                        >
-                            <rect x="3" y="5" width="18" height="15" rx="3" />
-                            <path d="M16 14h5" />
-                            <path d="M3 9h18" />
-                            <path d="M7 3v4" />
-                        </svg>
-                    </div>
                     <span>Expense<span className="brand-accent">Flow</span></span>
                 </div>
 
