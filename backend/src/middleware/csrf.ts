@@ -6,7 +6,7 @@ export const csrfProtection = (
     res: express.Response,
     next: express.NextFunction
 ) => {
-    if (req.path === "/refresh") {
+    if (req.path === "/refresh" || req.originalUrl?.includes("/refresh")) {
         return next();
     }
 
