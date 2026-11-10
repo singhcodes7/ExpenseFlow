@@ -51,8 +51,6 @@ app.get("/health", (_req, res) => {
 app.use(sessionRouter);
 app.use(registrationRouter);
 
-app.use(csrfProtection);
-
 app.use("/api", budgetRouter);
 app.use(categoriesRouter);
 app.use(expensesRouter);
