@@ -274,7 +274,7 @@ function App() {
       return;
     }
 
-    sessionStorage.removeItem("accessToken");
+    localStorage.removeItem("accessToken");
     setUser(null);
     setExpenses([]);
     setIncome([]);
@@ -294,7 +294,7 @@ function App() {
         method: "POST",
       });
 
-      sessionStorage.removeItem("accessToken");
+      localStorage.removeItem("accessToken");
       setUser(null);
       setExpenses([]);
       setIncome([]);
@@ -416,7 +416,7 @@ function App() {
         ]);
       } catch {
         if (active) {
-          sessionStorage.removeItem("accessToken");
+          localStorage.removeItem("accessToken");
         }
       } finally {
         if (active) {

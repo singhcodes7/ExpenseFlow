@@ -88,7 +88,7 @@ useEffect(() => {
                     throw new Error("Unexpected server response. Please try again.");
                 }
 
-                sessionStorage.setItem("accessToken", data.accessToken);
+                localStorage.setItem("accessToken", data.accessToken);
                 onLogin(data.user);
             }
         } catch (err) {
