@@ -15,7 +15,6 @@ const transporter = nodemailer.createTransport({
         user: smtpUser,
         pass: smtpPass,
     },
-    // Timeouts prevent the server from hanging indefinitely if ports are blocked
     connectionTimeout: 10000, 
     greetingTimeout: 10000,
     socketTimeout: 10000,
