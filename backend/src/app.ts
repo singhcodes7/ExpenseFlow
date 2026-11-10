@@ -21,12 +21,13 @@ app.set("trust proxy", 1);
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(
-    cors({
-        origin: ALLOWED_ORIGIN,
-        credentials: true,
-    })
-);
+app.use(cors({
+  origin: [
+    'https://expense-flow-tau-livid.vercel.app',
+    'http://localhost:5173'
+  ],
+  credentials: true
+}));
 
 app.use(
     helmet({
