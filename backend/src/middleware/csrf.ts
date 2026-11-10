@@ -6,6 +6,10 @@ export const csrfProtection = (
     res: express.Response,
     next: express.NextFunction
 ) => {
+    if (req.path === "/refresh") {
+        return next();
+    }
+
     const stateChangingMethods = ["POST", "PUT", "PATCH", "DELETE"];
 
     if (stateChangingMethods.includes(req.method)) {
