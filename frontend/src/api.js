@@ -20,32 +20,27 @@ export async function refreshAccessToken() {
     }
 
     refreshPromise = (async () => {
-        try {
-            const response = await fetch(`${API_URL}/refresh`, {
-                method: "POST",
-                credentials: "include",
-            });
+        const response = await fetch(`${API_URL}/refresh`, {
+            method: "POST",
+            credentials: "include",
+        });
 
-            const data = await response.json().catch(() => ({}));
+        const data = await response.json().catch(() => ({}));
 
-            if (!response.ok) {
-                localStorage.removeItem("accessToken");
-                throw new Error(
-                    data.message || "Your session has expired. Please log in again."
-                );
-            }
-
-            localStorage.setItem("accessToken", data.accessToken);
-            processQueue(null, data.accessToken);
-            return data.accessToken;
-        } catch (error) {
-            processQueue(error, null);
+        if (!response.ok) {
             localStorage.removeItem("accessToken");
-            throw error;
-        } finally {
-            refreshPromise = null;
+            processQueue(new Error(data.message || "Your session has expired. Please log in again."), null);
+            throw new Error(
+                data.message || "Your session has expired. Please log in again."
+            );
         }
-    })();
+
+        localStorage.setItem("accessToken", data.accessToken);
+        processQueue(null, data.accessToken);
+        return data.accessToken;
+    })().finally(() => {
+        refreshPromise = null;
+    });
 
     return refreshPromise;
 }
@@ -75,22 +70,13 @@ export async function apiRequest(endpoint, options = {}) {
 
     if (response.status === 401 && endpoint !== "/refresh") {
         if (refreshPromise) {
-            // If a refresh is already happening, queue this request to wait for it
-            try {
-                token = await new Promise((resolve, reject) => {
-                    failedQueue.push({ resolve, reject });
-                });
-                response = await makeRequest(token);
-            } catch (err) {
-                throw err;
-            }
+            token = await new Promise((resolve, reject) => {
+                failedQueue.push({ resolve, reject });
+            });
+            response = await makeRequest(token);
         } else {
-            try {
-                token = await refreshAccessToken();
-                response = await makeRequest(token);
-            } catch (error) {
-                throw error;
-            }
+            token = await refreshAccessToken();
+            response = await makeRequest(token);
         }
     }
 
@@ -124,21 +110,13 @@ export async function apiUpload(endpoint, formData) {
 
     if (response.status === 401 && endpoint !== "/refresh") {
         if (refreshPromise) {
-            try {
-                token = await new Promise((resolve, reject) => {
-                    failedQueue.push({ resolve, reject });
-                });
-                response = await makeRequest(token);
-            } catch (err) {
-                throw err;
-            }
+            token = await new Promise((resolve, reject) => {
+                failedQueue.push({ resolve, reject });
+            });
+            response = await makeRequest(token);
         } else {
-            try {
-                token = await refreshAccessToken();
-                response = await makeRequest(token);
-            } catch (error) {
-                throw error;
-            }
+            token = await refreshAccessToken();
+            response = await makeRequest(token);
         }
     }
 
