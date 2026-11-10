@@ -16,7 +16,7 @@ export const COOKIE_SAMESITE = (process.env.COOKIE_SAMESITE ?? "strict") as "str
 export const refreshCookieOptions = {
     httpOnly: true,
     secure: IS_PROD || COOKIE_SAMESITE === "none",
-    sameSite: COOKIE_SAMESITE,
+    sameSite: "none",
     path: "/",
     maxAge: REFRESH_COOKIE_MAX_AGE,
 };
