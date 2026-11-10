@@ -185,8 +185,10 @@ router.post(
             await client.query("COMMIT");
 
             res.cookie("refreshToken", refreshToken, {
-                ...refreshCookieOptions,
-                maxAge: REFRESH_COOKIE_MAX_AGE,
+            httpOnly: true,
+            secure: true,      // Required for HTTPS on Render
+            sameSite: "none",  // Required for cross-site requests from Vercel to Render
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
             });
 
             return res.status(200).json({
