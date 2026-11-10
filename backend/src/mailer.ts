@@ -1,11 +1,14 @@
-import { Resend } from "resend";
+import { BrevoClient } from "@getbrevo/brevo";
 
-// Fallback dummy key prevents tests from crashing when RESEND_API_KEY isn't set in CI/CD
-const resend = new Resend(process.env.RESEND_API_KEY || "re_test_dummy_key");
+const brevo = new BrevoClient({
+    apiKey: process.env.BREVO_API_KEY || "dummy_key_for_ci",
+});
+
 const FRONTEND_URL = (process.env.FRONTEND_URL ?? "http://localhost:5173").replace(/\/$/, "");
 const API_URL = (process.env.API_URL ?? "http://localhost:5000").replace(/\/$/, "");
 
-const SENDER_EMAIL = process.env.EMAIL_FROM ?? "ExpenseFlow <onboarding@resend.dev>";
+const SENDER_EMAIL = process.env.EMAIL_FROM || "kalyanising2002@gmail.com";
+const SENDER_NAME = "ExpenseFlow";
 
 export async function sendVerificationEmail(
     email: string,
@@ -14,11 +17,11 @@ export async function sendVerificationEmail(
     const verificationUrl = `${API_URL}/verify-email?token=${encodeURIComponent(verificationToken)}`;
 
     try {
-        await resend.emails.send({
-            from: SENDER_EMAIL,
-            to: email,
+        await brevo.transactionalEmails.sendTransacEmail({
+            sender: { email: SENDER_EMAIL, name: SENDER_NAME },
+            to: [{ email }],
             subject: "Verify your email address",
-            html: `
+            htmlContent: `
                 <h2>Verify your email</h2>
                 <p>Click below to verify your email address.</p>
                 <a href="${verificationUrl}">Verify Email</a>
@@ -44,11 +47,11 @@ export async function sendOtpEmail(
         : "Your login verification code";
 
     try {
-        await resend.emails.send({
-            from: SENDER_EMAIL,
-            to: email,
+        await brevo.transactionalEmails.sendTransacEmail({
+            sender: { email: SENDER_EMAIL, name: SENDER_NAME },
+            to: [{ email }],
             subject,
-            html: `
+            htmlContent: `
                 <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto; padding: 24px;">
                     <h2>${heading}</h2>
                     <p>Use the following code to continue:</p>
@@ -72,11 +75,11 @@ export async function sendPasswordResetEmail(
     const resetUrl = `${FRONTEND_URL}/reset-password?token=${encodeURIComponent(resetToken)}`;
     
     try {
-        await resend.emails.send({
-            from: SENDER_EMAIL,
-            to: email,
+        await brevo.transactionalEmails.sendTransacEmail({
+            sender: { email: SENDER_EMAIL, name: SENDER_NAME },
+            to: [{ email }],
             subject: "Reset your password",
-            html: `
+            htmlContent: `
                 <h2>Reset your password</h2>
                 <p>You requested a password reset.</p>
                 <p><a href="${resetUrl}">Reset your password</a></p>
